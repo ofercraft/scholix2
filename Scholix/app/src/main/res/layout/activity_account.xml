@@ -1,0 +1,227 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.coordinatorlayout.widget.CoordinatorLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layoutDirection="locale"
+    android:textDirection="locale">
+
+    <!-- Main Content Container -->
+    <LinearLayout
+        android:id="@+id/main_content"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="16dp"
+        android:layout_marginTop="35dp">
+
+        <!-- Title -->
+        <TextView
+            android:id="@+id/today_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="20dp"
+            android:gravity="center"
+            android:text="@string/account"
+            android:textColor="@color/text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <!-- Account Button Row -->
+        <LinearLayout
+            android:id="@+id/item_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:minHeight="72dp"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:background="?attr/selectableItemBackground"
+            android:paddingHorizontal="16dp"
+            android:paddingVertical="12dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/label"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/platforms"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:textColor="@color/text" />
+
+<!--                <TextView-->
+<!--                    android:id="@+id/value"-->
+<!--                    android:layout_width="wrap_content"-->
+<!--                    android:layout_height="wrap_content"-->
+<!--                    android:text="school platforms"-->
+<!--                    android:textSize="14sp"-->
+<!--                    android:textColor="@color/text"-->
+<!--                    android:maxLines="2"-->
+<!--                    android:ellipsize="end" />-->
+            </LinearLayout>
+
+
+
+            <FrameLayout android:id="@+id/platforms_container" android:layout_width="48dp" android:layout_height="48dp" android:layout_marginStart="8dp" android:clickable="true" android:focusable="true" app:layout_constraintStart_toStartOf="parent" app:layout_constraintTop_toTopOf="parent" app:layout_constraintBottom_toBottomOf="parent">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:layout_gravity="center"
+
+                    android:src="@drawable/arrow_right"
+                    android:contentDescription="@string/more_information"
+                    android:id="@+id/platform_arrow"
+
+                    app:tint="@color/text" />
+            </FrameLayout>
+
+        </LinearLayout>
+        <!-- Name -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/label_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/name"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/text" />
+
+            <TextView
+                android:id="@+id/value_name"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="your name here"
+                android:textSize="14sp"
+                android:textColor="@color/text"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Phone -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/label_phone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/phone_number"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/text" />
+
+            <TextView
+                android:id="@+id/value_phone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="your phone number here"
+                android:textSize="14sp"
+                android:textColor="@color/text"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Email -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingHorizontal="16dp"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:id="@+id/label_email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/email"
+                android:textStyle="bold"
+                android:textSize="16sp"
+                android:textColor="@color/text" />
+
+            <TextView
+                android:id="@+id/value_email"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="your email here"
+                android:textSize="14sp"
+                android:textColor="@color/text"
+                android:maxLines="2"
+                android:ellipsize="end" />
+        </LinearLayout>
+
+        <!-- Language Switch Button -->
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_switch_language"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="swtcd"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="24dp"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            app:cornerRadius="16dp"
+            android:textColor="@android:color/white"
+            android:backgroundTint="@color/backgroundAccent2"
+            android:icon="@drawable/ic_logo"
+            android:iconTint="@android:color/white"
+            android:gravity="center" />
+
+    </LinearLayout>
+
+
+    <!-- Spacer to push logout above bottom nav -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom" />
+
+    <!-- Logout Button -->
+    <FrameLayout android:layout_width="match_parent" android:layout_height="match_parent">
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_logout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/logout"
+            android:layout_marginStart="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginBottom="96dp"
+            android:layout_gravity="bottom"
+            app:cornerRadius="16dp"
+            android:backgroundTint="@android:color/holo_red_dark"
+            android:textColor="@android:color/white" />
+    </FrameLayout>
+
+    <com.google.android.material.bottomnavigation.BottomNavigationView
+        android:id="@+id/bottom_navigation"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom"
+        android:layout_marginTop="16dp"
+        android:background="@color/backgroundAccent"
+        app:menu="@menu/bottom_nav_menu"
+        app:itemIconSize="24dp"
+        app:itemIconTint="@color/nav_item_color"
+        app:itemTextColor="@color/nav_item_color"
+        app:labelVisibilityMode="labeled"
+        app:itemRippleColor="@android:color/transparent" />
+
+</androidx.coordinatorlayout.widget.CoordinatorLayout>

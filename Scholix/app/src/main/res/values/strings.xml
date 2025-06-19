@@ -1,0 +1,41 @@
+<resources>
+    <string name="app_name">Scholix</string>
+    <string name="action_settings">Settings</string>
+    <!-- Strings used for fragments for navigation -->
+    <string name="next">Next</string>
+    <string name="previous">Previous</string>
+    <string name="dir">ltr</string>
+
+    <string name="username">Username</string>
+    <string name="password">Password</string>
+    <string name="login">Login</string>
+    <string name="grades">Grades</string>
+    <string name="schedule">Schedule</string>
+    <string name="nav_home">Home</string>
+    <string name="nav_schedule">Schedule</string>
+    <string name="nav_grades">Grades</string>
+    <!-- TODO: Remove or change this placeholder text -->
+
+
+    <string name="webtop">Webtop</string>
+    <string name="barilan">Bar Ilan</string>
+    <string name="account">Account</string>
+    <string name="platforms">Platforms</string>
+    <string name="more_information">more information</string>
+    <string name="logout">Logout</string>
+    <string name="name">Name</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="email">Email</string>
+    <string name="friday">Fri</string>
+    <string name="thursday">Thurs</string>
+    <string name="wednesday">Wed</string>
+    <string name="tuesday">Tues</string>
+    <string name="monday">Mon</string>
+    <string name="sunday">Sun</string>
+    <string name="messages">Messages</string>
+    <string name="home">Home</string>
+    <string name="average">Average</string>
+    <string name="good_morning">Good Morning</string>
+
+
+</resources>

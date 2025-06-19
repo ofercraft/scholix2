@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:android="http://schemas.android.com/apk/res/android">
+
+
+    <color name="background">#F5F5F5</color>
+    <color name="backgroundAccent">#F2F2F2</color>
+    <color name="backgroundAccent2">#DBDBDB</color> <!-- Lighter gray -->
+
+    <color name="text">#000000</color>
+    <color name="textAccent">#63A2E9</color>
+    <color name="textContrast">#FFFFFF</color>
+
+
+    <color name="purple_200">#86FAFC</color>
+    <color name="purple_500">#0010EE</color>
+    <color name="purple_700">#001BB3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="main">#000000</color>
+    <!-- res/values/colors.xml -->
+    <color name="tab_unselected">#000000</color>
+
+
+    <color name="waveColor1">#2196F3</color>
+    <color name="waveColor2">#1E88E5</color>
+    <color name="waveColor3">#1976D2</color>
+    <color name="loginButtonColor">#F44336</color>
+    <color name="textPrimary">#000000</color>
+    <color name="textSecondary">#616161</color>
+
+    <color name="divider">#E0E0E0</color>
+    <color name="colorPrimary">#2196F3</color>
+    <color name="colorPrimaryDark">#1976D2</color>
+    <color name="colorAccent">#36C8F4</color>
+    <color name="colorAccentDark">#2FA2D3</color>
+
+    <!-- Autofill highlight override (light mode) -->
+    <color name="my_autofill_highlight">#FFF9C4</color> <!-- Light yellow -->
+
+
+</resources>
