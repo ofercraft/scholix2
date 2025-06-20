@@ -21,6 +21,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Name"
+            android:autofillHints="name"
             android:inputType="text"
             android:layout_marginBottom="10dp"/>
 
@@ -30,7 +31,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             card_view:background="@color/colorPrimary"
-
+            android:autofillHints="username"
             android:hint="Username"
             android:inputType="text"
             android:layout_marginBottom="10dp"/>
@@ -41,23 +42,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Password"
+            android:autofillHints="password"
             android:inputType="textPassword"
             android:layout_marginBottom="10dp"/>
-
-        <!-- Source Dropdown -->
-        <Spinner
-            android:id="@+id/dialog_source_spinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"/>
-
-        <!-- Year Dropdown (hidden unless Bar Ilan selected) -->
-        <Spinner
-            android:id="@+id/dialog_year_spinner"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
 
     </LinearLayout>
 

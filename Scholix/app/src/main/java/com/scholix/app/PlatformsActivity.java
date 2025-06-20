@@ -1,5 +1,6 @@
 package com.scholix.app;
 
+import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -21,11 +22,18 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.scholix.app.api.Platform;
+import com.scholix.app.api.PlatformStorage;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.Executors;
 
 public class PlatformsActivity extends BaseActivity {
 
@@ -33,18 +41,19 @@ public class PlatformsActivity extends BaseActivity {
     private FloatingActionButton addAccountFab;
     private AccountAdapter accountAdapter;
     private SharedPreferences prefs;
-    private List<Account> accountList;
+    private List<Platform> accountList;
     private Gson gson = new Gson();
     private ImageView backArrow;
 
     private static final String ACCOUNTS_KEY = "accounts_list";
     private static final String[] sources = {"Classroom", "Bar Ilan", "Webtop"};
+    Context context;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_platforms);
-
+        context=this;
         prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
 
         accountsRecyclerView = findViewById(R.id.accounts_recycler_view);
@@ -53,19 +62,8 @@ public class PlatformsActivity extends BaseActivity {
         accountsRecyclerView.setLayoutManager(layoutManager);
         accountsRecyclerView.setClipToPadding(false);
         accountsRecyclerView.setPadding(0, 0, 0, 500);
-
-        loadAccounts();
-
-        accountAdapter = new AccountAdapter(accountList, position -> {
-            accountList.remove(position);
-            saveAccounts();
-            accountAdapter.notifyDataSetChanged();
-            Toast.makeText(this, "Account Deleted", Toast.LENGTH_SHORT).show();
-        }, () -> {
-            saveAccounts();
-            Toast.makeText(this, "Account Saved", Toast.LENGTH_SHORT).show();
-        });
-
+        accountList= PlatformStorage.loadPlatforms(context);
+        accountAdapter = new AccountAdapter(context, accountList);
         accountsRecyclerView.setAdapter(accountAdapter);
 
         addAccountFab = findViewById(R.id.add_account_fab);
@@ -74,7 +72,7 @@ public class PlatformsActivity extends BaseActivity {
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         setupBottomNavigation(bottomNavigationView);
 
-
+        accountList=PlatformStorage.loadPlatforms(context);
 
 
         findViewById(R.id.back_arrow_container).setOnClickListener(v -> {
@@ -94,7 +92,6 @@ public class PlatformsActivity extends BaseActivity {
                 Collections.swap(accountList, from, to);
                 accountAdapter.notifyItemMoved(from, to);
 
-                markTopAsMainAccount();
                 return true;
             }
 
@@ -104,71 +101,29 @@ public class PlatformsActivity extends BaseActivity {
             }
         });
         itemTouchHelper.attachToRecyclerView(accountsRecyclerView);
+        new Thread(() -> {
+            // your background code here
+            try {
+                System.out.println(PlatformStorage.getCourses(this));
+                System.out.println(PlatformStorage.loadPlatforms(this));
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
 
     }
-    private void markTopAsMainAccount() {
-        System.out.println(accountList.get(0).getUsername());
-        for (int i = 0; i < accountList.size(); i++) {
-            accountList.get(i).setMain(i == 0);
-            accountList.get(i).setLocation(i);
-        }
-        saveAccounts();
-        accountAdapter.notifyDataSetChanged();
-    }
-    private Account getMain() {
+
+    private Platform getMain() {
         return accountList.get(0);
     }
-    private void loadAccounts() {
-        String json = prefs.getString(ACCOUNTS_KEY, null);
-        if (json != null) {
-            Type type = new TypeToken<ArrayList<Account>>() {}.getType();
-            accountList = gson.fromJson(json, type);
-        } else {
-            accountList = new ArrayList<>();
-        }
-    }
 
-    private void saveAccounts() {
-        String json = gson.toJson(accountList);
-
-        prefs.edit().putString(ACCOUNTS_KEY, json).apply();
-    }
 
     private void showAddAccountDialog() {
         View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_add_account, null);
         EditText nameInput = dialogView.findViewById(R.id.dialog_name);
         EditText usernameInput = dialogView.findViewById(R.id.dialog_username);
         EditText passwordInput = dialogView.findViewById(R.id.dialog_password);
-        Spinner sourceSpinner = dialogView.findViewById(R.id.dialog_source_spinner);
-        Spinner yearSpinner = dialogView.findViewById(R.id.dialog_year_spinner);
 
-        // Setup source spinner
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, sources);
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        sourceSpinner.setAdapter(spinnerAdapter);
-
-        // Setup year spinner
-        ArrayAdapter<String> yearAdapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, new String[]{"1", "2", "3"});
-        yearAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        yearSpinner.setAdapter(yearAdapter);
-
-        // Show year spinner only if Bar Ilan selected
-        sourceSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-                String selectedSource = sourceSpinner.getSelectedItem().toString();
-                if (selectedSource.equals("Bar Ilan")) {
-                    yearSpinner.setVisibility(View.VISIBLE);
-                } else {
-                    yearSpinner.setVisibility(View.GONE);
-                }
-            }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {}
-        });
 
         AlertDialog dialog = new AlertDialog.Builder(this)
                 .setTitle("Add Account")
@@ -183,52 +138,31 @@ public class PlatformsActivity extends BaseActivity {
                 String name = nameInput.getText().toString().trim();
                 String username = usernameInput.getText().toString().trim();
                 String password = passwordInput.getText().toString().trim();
-                String selectedSource = sourceSpinner.getSelectedItem().toString();
 
                 if (username.isEmpty() || password.isEmpty()) {
                     Toast.makeText(this, "Fill all fields", Toast.LENGTH_SHORT).show();
                     return;
                 }
-                if (name.isEmpty()) name = selectedSource;
 
-                if (selectedSource.equals("Webtop")) {
-                    // Validate Webtop login
-                    String finalName = name;
-                    new Thread(() -> {
-                        try {
-                            LoginManager loginManager = new LoginManager();
-                            LoginManager.LoginResult result = loginManager.validateLogin(username, password);
+                Executors.newSingleThreadExecutor().execute(() -> {
+                    try {
+                        List<Platform> newPlatforms = PlatformStorage.addPlatform(this, username, password);
 
-                            runOnUiThread(() -> {
-                                if (result.success) {
-                                    Account newAccount = new Account(username, password, selectedSource, finalName);
-                                    accountList.add(newAccount);
-                                    saveAccounts();
-                                    accountAdapter.notifyDataSetChanged();
-                                    Toast.makeText(this, "Webtop Account Added", Toast.LENGTH_SHORT).show();
-                                    dialog.dismiss();
-                                } else {
-                                    Toast.makeText(this, "Webtop Login Failed: " + result.message, Toast.LENGTH_SHORT).show();
-                                }
-                            });
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            runOnUiThread(() -> Toast.makeText(this, "Login Error: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-                        }
-                    }).start();
-                } else {
-                    String finalName = name;
-                    Account newAccount = new Account(username, password, selectedSource, finalName);
-                    if (selectedSource.equals("Bar Ilan")) {
-                        int selectedYear = Integer.parseInt(yearSpinner.getSelectedItem().toString());
-                        newAccount.setYear(selectedYear);
+                        runOnUiThread(() -> {
+                            accountList=PlatformStorage.loadPlatforms(context);
+                            accountAdapter = new AccountAdapter(context, accountList);
+                            accountsRecyclerView.setAdapter(accountAdapter);
+                            dialog.dismiss();
+                        });
+
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        runOnUiThread(() ->
+                                Toast.makeText(context, "Failed to add account", Toast.LENGTH_SHORT).show()
+                        );
                     }
-                    accountList.add(newAccount);
-                    saveAccounts();
-                    accountAdapter.notifyDataSetChanged();
-                    Toast.makeText(this, "Account Added", Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                }
+                });
+
             });
         });
 

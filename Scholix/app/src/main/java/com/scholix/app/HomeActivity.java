@@ -30,10 +30,13 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.Set;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -47,6 +50,8 @@ import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.navigation.NavigationView;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
+import com.scholix.app.api.Platform;
+import com.scholix.app.api.PlatformStorage;
 
 
 public class HomeActivity extends BaseActivity {
@@ -54,7 +59,7 @@ public class HomeActivity extends BaseActivity {
     private static final String TAG = "HomeActivity";
     private RecyclerView scheduleRecyclerView;
     private ScheduleAdapter adapter;
-    private ArrayList<ScheduleItem> scheduleItems;
+    private ArrayList<JSONObject> scheduleItems = new ArrayList<>();
     private OkHttpClient client = UnsafeOkHttpClient.getUnsafeOkHttpClient();
 
     // Mapping for subject -> colorClass (using cleaned keys)
@@ -102,11 +107,28 @@ public class HomeActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_home); // Ensure your XML now includes a BottomNavigationView with id "bottom_navigation"
 
+
+
         scheduleRecyclerView = findViewById(R.id.schedule_recycler_view);
         scheduleRecyclerView.setLayoutManager(new LinearLayoutManager(this));
-//        scheduleItems = new ArrayList<JSONObject>();
-//        adapter = new ScheduleAdapter(this, scheduleItems);
-//        scheduleRecyclerView.setAdapter(adapter);
+        scheduleItems = new ArrayList<JSONObject>();
+        adapter = new ScheduleAdapter(this, scheduleItems);
+        scheduleRecyclerView.setAdapter(adapter);
+
+        new Thread(() -> {
+            // Perform network call here safely
+            try {
+                System.out.println(PlatformStorage.getCourses(this));
+
+
+
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }).start();
+
+
 
         // Bottom Navigation Bar Setup
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -120,419 +142,67 @@ public class HomeActivity extends BaseActivity {
 
         prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
 
-        // Load accounts list
-        String json = prefs.getString("accounts_list", null);
-        List<Account> savedAccounts = new ArrayList<>();
 
-        if (json != null) {
-            Gson gson = new Gson();
-            Type type = new TypeToken<ArrayList<Account>>() {}.getType();
-            savedAccounts = gson.fromJson(json, type);
-        }
-
-        // Read global cookies and studentId for now (for Webtop accounts, until individual cookies saved)
-        String savedCookies = prefs.getString("cookies", "");
-        String studentId = prefs.getString("student_id", "");
-
-
-
-
-        // Loop through all accounts
-        for (Account account : savedAccounts) {
-            if (account.getSource().equals("Webtop")) {
-                // Fetch Webtop grades, pass year from Account
-                WebtopGradeFetcher webtopFetcher = new WebtopGradeFetcher(savedCookies, studentId, account.getYear());
-                new Thread(() -> {
-                    List<Grade> webtopGrades = webtopFetcher.fetchGrades("b");
-                    runOnUiThread(() -> {
-                        TextView averageGrade = findViewById(R.id.average_grade);
-                        int average = webtopFetcher.getAverage(webtopGrades);
-
-                        averageGrade.setText(String.valueOf(average));
-
-                    });
-                }).start();
-            }
-            if (account.getSource().equals("Demo")) {
-                // Fetch Webtop grades, pass year from Account
-                WebtopGradeFetcher webtopFetcher = new WebtopGradeFetcher(savedCookies, studentId, account.getYear());
-                new Thread(() -> {
-                    List<Grade> webtopGrades = webtopFetcher.fetchGrades("b");
-                    runOnUiThread(() -> {
-                        TextView averageGrade = findViewById(R.id.average_grade);
-                        int average = webtopFetcher.getAverage(webtopGrades);
-
-                        averageGrade.setText(String.valueOf(average));
-
-                    });
-                }).start();
-            }
-
-        }
 
     }
 
 
-    private void updateDayLabel(int day) {
-        // Convert the day number to a day name. Modify as needed.
-        String dayName;
-        switch (day) {
-            case 0: dayName = "ראשון"; break;
-            case 1: dayName = "שני"; break;
-            case 2: dayName = "שלישי"; break;
-            case 3: dayName = "רביעי"; break;
-            case 4: dayName = "חמישי"; break;
-            case 5: dayName = "שישי"; break;
-            case 6: dayName = "שבת"; break;
-            default: dayName = "היום"; break;
-        }
-        dayLabel.setText(dayName);
-    }
-    @SuppressLint("NotifyDataSetChanged")
-    private void fetchScheduleOriginal(final int dayIndex) {
+    private void fetchScheduleUpdated(int dayIdx){
+        Platform platform = PlatformStorage.getAccount(this, 0);
+
+        scheduleItems.clear();
+
         new Thread(() -> {
+            // Perform network call here safely
             try {
-                SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                String grade       = prefs.getString("class_code",      "default_grade");
-                String institution = prefs.getString("institution",     "default_institution");
-                String cookies     = prefs.getString("cookies",         "");
 
-                JSONObject payload = new JSONObject();
-                payload.put("institutionCode", institution);
-                payload.put("selectedValue",   grade);
-                payload.put("typeView",        1);
-
-                RequestBody body = RequestBody.create(
-                        payload.toString(), MediaType.get("application/json; charset=utf-8"));
-
-                Request request = new Request.Builder()
-                        .url("https://webtopserver.smartschool.co.il/server/api/shotef/ShotefSchedualeData")
-                        .addHeader("Cookie", cookies)
-                        .post(body)
-                        .build();
-
-                Response response = client.newCall(request).execute();
-                String respBody   = response.body() != null ? response.body().string() : "";
-
-                JSONArray daysArr = new JSONObject(respBody).getJSONArray("data");
-                if (dayIndex < 0 || dayIndex >= daysArr.length()) return;
-
-                JSONObject dayObj  = daysArr.getJSONObject(dayIndex);
-                JSONArray  hours   = dayObj.getJSONArray("hoursData");
-                Map<Integer,ScheduleItem> hourMap = new HashMap<>();
-
-
-                for (int i = 0; i < hours.length(); i++) {
-                    JSONObject hour = hours.getJSONObject(i);
-                    if (hour.has("scheduale") && hour.getJSONArray("scheduale").length() > 0) {
-                        processScheduleOriginal(hour, hourMap);
-                    }
+                JSONArray scheduledDays = platform.getScheduleIndexes();
+                Set<Integer> allowed = new HashSet<>();
+                for (int i = 0; i < scheduledDays.length(); i++) {
+                    allowed.add(scheduledDays.getInt(i));
+                }
+                if (!allowed.contains(dayIdx)) {
+                    scheduleItems.add(new JSONObject().put("subject", "יום מנוחה").put("num","").put("teacher", "אין לימודים היום \uD83C\uDF89\n").put("changes", "").put("exams", "").put("colorClass", "lightyellow-cell"));
                 }
 
-                ArrayList<ScheduleItem> items = new ArrayList<>(hourMap.values());
-                items.sort(Comparator.comparingInt(o -> o.hourNum));
-
+                JSONObject schedule = platform.getSchedule(dayIdx);
+                for (Iterator<String> it = schedule.keys(); it.hasNext(); ) {
+                    String index = it.next(); // "1", "2", etc.
+                    JSONObject hour = schedule.getJSONObject(index);
+                    scheduleItems.add(hour);
+                    System.out.println(hour);
+                }
                 runOnUiThread(() -> {
-                    scheduleItems.clear();
-                    scheduleItems.addAll(items);
                     adapter.notifyDataSetChanged();
-                });
 
+                });                // You can update UI using runOnUiThread() if needed
             } catch (Exception e) {
-                Log.e(TAG, "Error fetching schedule", e);
-                runOnUiThread(() ->
-                        Toast.makeText(HomeActivity.this,
-                                "Error fetching schedule", Toast.LENGTH_SHORT).show());
+                e.printStackTrace();
             }
         }).start();
     }
-    private void processScheduleOriginal(JSONObject hourObj, Map<Integer, ScheduleItem> hourMap) throws Exception {
-        JSONArray scheduleArray = hourObj.getJSONArray("scheduale");
-        JSONObject scheduleItem = scheduleArray.getJSONObject(0);
+    private void fetchScheduleOriginal(int dayIdx){
+        Platform platform = PlatformStorage.getAccount(this, 0);
+        scheduleItems.clear();
 
-        String subject = cleanSubject(scheduleItem.optString("subject", "לא זמין"));
-        String teacher = scheduleItem.optString("teacherPrivateName", "לא זמין") + " " + scheduleItem.optString("teacherLastName", "לא זמין");
-        int hourNum = scheduleItem.optInt("hour", -1);
-        String colorClass = findColorClass(subject);
-
-        ScheduleItem schedItem = new ScheduleItem(hourNum, subject, teacher, colorClass, "");
-        hourMap.put(hourNum, schedItem);
-    }
-
-
-    @SuppressLint("NotifyDataSetChanged")
-    private void fetchScheduleUpdated(final int dayIndex) {
         new Thread(() -> {
+            // Perform network call here safely
             try {
-                if (prefs.getString("name",      "name").equals("demo")){
-                    ArrayList<ScheduleItem> items = new ArrayList<>();
-
-                    items.add(new ScheduleItem(1, "עברית", "יעל כהן", "custom-lime-cell", ""));
-                    items.add(new ScheduleItem(2, "מתמטיקה", "רועי ברק", "lightblue-cell", ""));
-                    items.add(new ScheduleItem(3, "אנגלית", "מירב שלו", "lightyellow-cell", ""));
-                    items.add(new ScheduleItem(4, "היסטוריה", "דניאל לוי", "custom-orange-cell", ""));
-                    items.add(new ScheduleItem(5, "ביולוגיה", "נטע שמש", "lightgreen-cell", ""));
-                    items.add(new ScheduleItem(6, "ספרות", "אסף צור", "custom-purple-cell", ""));
-                    items.add(new ScheduleItem(7, "תנ\"ך", "חני רוזן", "custom-pink-cell", ""));
-                    runOnUiThread(() -> {
-                        scheduleItems.clear();
-                        scheduleItems.addAll(items);
-                        adapter.notifyDataSetChanged();
-                    });
+                JSONObject schedule = platform.getOriginalSchedule(dayIdx);
+                for (Iterator<String> it = schedule.keys(); it.hasNext(); ) {
+                    String index = it.next(); // "1", "2", etc.
+                    JSONObject hour = schedule.getJSONObject(index);
+                    scheduleItems.add(hour);
+                    System.out.println(hour);
                 }
-                else{
-                    SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                    String grade       = prefs.getString("class_code",      "default_grade");
-                    String institution = prefs.getString("institution",     "default_institution");
-                    String cookies     = prefs.getString("cookies",         "");
+                runOnUiThread(() -> {
+                    adapter.notifyDataSetChanged();
 
-                    JSONObject payload = new JSONObject();
-                    payload.put("institutionCode", institution);
-                    payload.put("selectedValue",   grade);
-                    payload.put("typeView",        1);
-
-                    RequestBody body = RequestBody.create(
-                            payload.toString(), MediaType.get("application/json; charset=utf-8"));
-
-                    Request request = new Request.Builder()
-                            .url("https://webtopserver.smartschool.co.il/server/api/shotef/ShotefSchedualeData")
-                            .addHeader("Cookie", cookies)
-                            .post(body)
-                            .build();
-
-                    Response response = client.newCall(request).execute();
-                    String respBody   = response.body() != null ? response.body().string() : "";
-
-                    JSONArray daysArr = new JSONObject(respBody).getJSONArray("data");
-                    if (dayIndex < 0 || dayIndex >= daysArr.length()) return;
-
-                    JSONObject dayObj  = daysArr.getJSONObject(dayIndex);
-                    JSONArray  hours   = dayObj.getJSONArray("hoursData");
-                    Map<Integer,ScheduleItem> hourMap = new HashMap<>();
-                    Map<Integer,ScheduleItem> hourMap2 = new HashMap<>();
-
-                    for (int i = 0; i < hours.length(); i++) {
-                        JSONObject hour = hours.getJSONObject(i);
-                        if (hour.has("scheduale") && hour.getJSONArray("scheduale").length() > 0) {
-                            processScheduleOriginal(hour, hourMap2);
-                        }
-                    }
-                    for (int i = 0; i < hours.length(); i++) {
-                        JSONObject hour = hours.getJSONObject(i);
-                        if (hour.has("scheduale") && hour.getJSONArray("scheduale").length() > 0) {
-                            processScheduleUpdated(hour, hourMap, hourMap2);
-                        }
-                    }
-
-                    ArrayList<ScheduleItem> items = new ArrayList<>(hourMap.values());
-                    items.sort(Comparator.comparingInt(o -> o.hourNum));
-                    runOnUiThread(() -> {
-                        scheduleItems.clear();
-                        scheduleItems.addAll(items);
-                        adapter.notifyDataSetChanged();
-                    });
-                }
-
-
+                });                // You can update UI using runOnUiThread() if needed
             } catch (Exception e) {
-                Log.e(TAG, "Error fetching schedule", e);
-                runOnUiThread(() ->
-                        Toast.makeText(HomeActivity.this,
-                                "Error fetching schedule", Toast.LENGTH_SHORT).show());
+                e.printStackTrace();
             }
         }).start();
     }
 
-    private void processScheduleUpdated(JSONObject hourObj, Map<Integer, ScheduleItem> hourMap) throws Exception {
-        processScheduleUpdated(hourObj, hourMap, new HashMap<>()); // calls the full version
-    }
-
-    private void processScheduleUpdated(JSONObject hourObj, Map<Integer, ScheduleItem> hourMap, Map<Integer, ScheduleItem> hourMap2) throws Exception {
-        JSONArray scheduleArray = hourObj.getJSONArray("scheduale");
-        JSONObject scheduleItem = scheduleArray.getJSONObject(0);
-
-        String subject = cleanSubject(scheduleItem.optString("subject", "לא זמין"));
-        String teacher = scheduleItem.optString("teacherPrivateName", "לא זמין") + " " + scheduleItem.optString("teacherLastName", "לא זמין");
-        int hourNum = scheduleItem.optInt("hour", -1);
-        String colorClass = findColorClass(subject);
-
-        ScheduleItem schedItem = new ScheduleItem(hourNum, subject, teacher, colorClass, "");
-
-        if (hourObj.has("exams")) {
-            JSONArray examsArray = hourObj.getJSONArray("exams");
-            for (int j = 0; j < examsArray.length(); j++) {
-                JSONObject examObj = examsArray.getJSONObject(j);
-                subject = examObj.optString("title", "מבחן");
-                teacher = examObj.optString("supervisors", "לא זמין");
-
-                colorClass = "exam-cell";
-                schedItem.setExam(subject);
-            }
-        }
-
-        JSONArray changesArray = scheduleItem.getJSONArray("changes");
-        boolean cancel=false;
-        for (int j = 0; j < changesArray.length(); j++) {
-            JSONObject itemObj = changesArray.getJSONObject(j);
-            if (itemObj.optInt("original_hour", -1) == -1 &&
-                    itemObj.optString("definition", "לא זמין").equals("ביטול שיעור")) {
-//                schedItem.addChange("ביטול שיעור");
-//                schedItem.setColorClass("cancel-cell");
-                cancel=true;
-            }
-            if (itemObj.optInt("original_hour", -1) == hourNum &&
-                    itemObj.optString("definition", "לא זמין").equals("ביטול שיעור")) {
-//                schedItem.addChange("ביטול שיעור");
-//                schedItem.setColorClass("cancel-cell");
-                cancel=true;
-
-            }
-            if (itemObj.optInt("original_hour", -1) != -1) {
-                ScheduleItem originalHour = hourMap.get(itemObj.optInt("original_hour", 0));
-//                originalHour.addChange("ביטול שיעור");
-//                schedItem.setColorClass("cancel-cell");
-                cancel=true;
-
-            }
-
-            if (itemObj.optString("definition", "לא זמין").equals("הזזת שיעור")) {
-                String fillTeacher = itemObj.optString("privateName", "לא זמין") + " " + itemObj.optString("lastName", "לא זמין");
-
-                boolean found=false;
-                for (ScheduleItem existing : hourMap2.values()) {
-                    if (existing.teacher.equals(fillTeacher)) {
-                        schedItem.setSubject(existing.subject);
-                        schedItem.setTeacher(existing.teacher);
-                        schedItem.setColorClass(existing.colorClass);
-                        found=true;
-                        break;
-                    }
-                }
-                if(!found){
-                    schedItem.addChange("מילוי מקום של " + fillTeacher);
-                }
-            }
-            if (itemObj.optString("definition", "לא זמין").equals("מילוי מקום")) {
-                String fillTeacher = itemObj.optString("privateName", "לא זמין") + " " + itemObj.optString("lastName", "לא זמין");
-
-                boolean found=false;
-                for (ScheduleItem existing : hourMap2.values()) {
-                    if (existing.teacher.equals(fillTeacher)) {
-                        schedItem.setSubject(existing.subject);
-                        schedItem.setTeacher(existing.teacher);
-                        schedItem.setColorClass(existing.colorClass);
-
-                        found=true;
-                        break;
-                    }
-                }
-                if(!found){
-                    schedItem.addChange("מילוי מקום של " + fillTeacher);
-                }
-            }
-
-        }
-        if (hourObj.has("events") && hourObj.getJSONArray("events").length() > 0){
-            JSONArray events = hourObj.optJSONArray("events");
-            assert events != null;
-            JSONObject event = events.getJSONObject(0);
-            String title = event.getString("title");
-            String type = event.getString("title");
-            String accompaniers = event.getString("accompaniers").replaceAll(",\\s*$", "");
-
-
-            if (!accompaniers.equals(",") && !accompaniers.equals(" ") && !accompaniers.isEmpty())
-                schedItem.setTeacher(accompaniers);
-            schedItem.setSubject(title);
-            schedItem.removeChanges();
-        }
-        if (!cancel){
-            hourMap.put(hourNum, schedItem);
-        }
-    }
-
-    private String cleanSubject(String subject) {
-        if (subject == null) return "לא זמין";
-        return subject.replace("", "").replace("\"", "").trim();
-    }
-    private String findColorClass(String subject) {
-        if (SUBJECT_COLORS.containsKey(subject)) {
-            return SUBJECT_COLORS.get(subject);
-        }
-        for (String key : SUBJECT_COLORS.keySet()) {
-            if (subject.contains(key)) {
-                return SUBJECT_COLORS.get(key);
-            }
-        }
-        // Try loading from preferences if already generated
-        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-        String savedColor = prefs.getString("color_" + subject, null);
-        if (savedColor != null) {
-            SUBJECT_COLORS.put(subject, savedColor);
-            return savedColor;
-        }
-        // Generate a random pastel color class name
-        String[] colorPool = {"red", "green", "blue", "orange", "yellow", "purple", "teal", "lime", "pink"};
-        String randomColor = "custom-" + colorPool[new Random().nextInt(colorPool.length)] + "-cell";
-
-        // Save to both map and preferences
-        SUBJECT_COLORS.put(subject, randomColor);
-        prefs.edit().putString("color_" + subject, randomColor).apply();
-
-        return randomColor;
-    }
-    private void showAccountPopup(View anchor) {
-        PopupMenu popupMenu = new PopupMenu(HomeActivity.this, anchor);
-        popupMenu.getMenuInflater().inflate(R.menu.popup_menu, popupMenu.getMenu());
-
-        // Reflection hack to force icons to show in the PopupMenu
-        try {
-            Field[] fields = popupMenu.getClass().getDeclaredFields();
-            for (Field field : fields) {
-                if ("mPopup".equals(field.getName())) {
-                    field.setAccessible(true);
-                    Object menuPopupHelper = field.get(popupMenu);
-                    Class<?> classPopupHelper = Class.forName(menuPopupHelper.getClass().getName());
-                    Method setForceIcons = classPopupHelper.getMethod("setForceShowIcon", boolean.class);
-                    setForceIcons.invoke(menuPopupHelper, true);
-                    break;
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        // Handle menu item clicks
-        popupMenu.setOnMenuItemClickListener(new PopupMenu.OnMenuItemClickListener() {
-
-            @Override
-            public boolean onMenuItemClick(MenuItem item) {
-                switch (item.getItemId()) {
-                    case R.id.menu_username:
-//                        Toast.makeText(HomeActivity.this, "Username clicked", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.menu_settings:
-                        startActivity(new Intent(HomeActivity.this, PlatformsActivity.class));
-
-//                        Toast.makeText(HomeActivity.this, "Settings clicked", Toast.LENGTH_SHORT).show();
-                        return true;
-                    case R.id.menu_logout:
-                        // Clear stored login data and navigate back to MainActivity
-                        SharedPreferences prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
-                        SharedPreferences.Editor editor = prefs.edit();
-                        editor.clear();
-                        editor.apply();
-                        Toast.makeText(HomeActivity.this, "Logged out", Toast.LENGTH_SHORT).show();
-                        Intent intent = new Intent(HomeActivity.this, MainActivity.class);
-                        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_NEW_TASK);
-                        startActivity(intent);
-                        finish();
-                        return true;
-                    default:
-                        return false;
-                }
-            }
-        });
-        popupMenu.show();
-    }
 }

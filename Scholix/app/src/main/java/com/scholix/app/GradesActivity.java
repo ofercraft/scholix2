@@ -1,5 +1,6 @@
 package com.scholix.app;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -18,6 +19,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.tabs.TabLayout;
 import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 import com.scholix.app.api.Platform;
@@ -45,6 +47,8 @@ public class GradesActivity extends BaseActivity {
     private GradeAdapter gradeAdapter;
     private ArrayList gradeList;
     private SharedPreferences prefs;
+    private Context context;
+    private volatile int currentTabVersion = 0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,7 +56,7 @@ public class GradesActivity extends BaseActivity {
         setContentView(R.layout.activity_grades);
 
         Log.d("NAV_DEBUG", "GradesActivity started");
-
+        context = this;
         gradesRecyclerView = findViewById(R.id.grades_recycler_view);
         gradesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
@@ -71,47 +75,201 @@ public class GradesActivity extends BaseActivity {
         // Read global cookies and studentId for now (for Webtop accounts, until individual cookies saved)
         String savedCookies = prefs.getString("cookies", "");
         String studentId = prefs.getString("student_id", "");
+        new Thread(() -> {
+            // your background code here
+            try {
+                ArrayList<JSONObject> courses = PlatformStorage.getCourses(this);
+                TabLayout tabLayout = findViewById(R.id.platform_tabs);
 
-        // Loop through all accounts
-        for (Platform platform : savedAccounts) {
+                runOnUiThread(() -> {
+                    for(int i=0; i<courses.size(); i++){
+                        try {
+                            tabLayout.addTab(tabLayout.newTab().setText(courses.get(i).getString("name")));
 
+                            System.out.println("1");
+                            int finalI = i;
+                            tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+                                @Override public void onTabSelected(TabLayout.Tab tab) {
+                                    currentTabVersion++; // bump version
+                                    int thisTabVersion = currentTabVersion;
 
-            new Thread(() -> {
-                try {
-                    JSONArray grades = platform.getGrades();
+                                    new Thread(() -> {
+                                        try {
+                                            JSONArray grades = PlatformStorage.loadPlatforms(context).get(courses.get(tab.getPosition()).getInt("index")).getGrades(courses.get(tab.getPosition()).getString("name"));
+                                            if (thisTabVersion != currentTabVersion) return;
 
-                    runOnUiThread(() -> {
-                        TextView averageGrade = findViewById(R.id.average_grade);
-                        int sum = 0;
-                        int count = 0;
-                        for (int i = 0; i < grades.length(); i++) {
-                            JSONObject grade = grades.optJSONObject(i);
-                            try {
-                                if (!grade.getString("grade").equals("null")) {
-                                    try {
-                                        sum += grade.getInt("grade");
-                                        count++;
-                                    } catch (Exception e){}
-                                    gradeList.add(grade);  // now this is a checked call
+                                            runOnUiThread(() -> {
+                                                if (thisTabVersion != currentTabVersion) return; // double-check before UI update
+
+                                                TextView averageGrade = findViewById(R.id.average_grade);
+                                                int sum = 0;
+                                                int count = 0;
+                                                gradeList.clear();
+                                                for (int i = 0; i < grades.length(); i++) {
+                                                    JSONObject grade = grades.optJSONObject(i);
+                                                    try {
+                                                        if (!grade.getString("grade").equals("null")) {
+                                                            try {
+                                                                sum += grade.getInt("grade");
+                                                                count++;
+                                                            } catch (Exception e) {
+                                                            }
+                                                            gradeList.add(grade);  // now this is a checked call
+                                                        }
+                                                    } catch (JSONException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                if (count > 0){
+                                                    try {
+                                                        gradeList.add(0, new JSONObject().put("subject", "ממוצע").put("name", "").put("grade", String.valueOf(sum / count)));
+                                                    } catch (JSONException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                else {
+                                                    try {
+                                                        gradeList.add(0, new JSONObject().put("subject", "ממוצע").put("name", "").put("grade", "0"));
+                                                    } catch (JSONException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                gradeAdapter.notifyDataSetChanged();
+
+                                            });
+                                        } catch (JSONException e) {
+                                            throw new RuntimeException(e);
+                                        } catch (IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+                                    }).start();
                                 }
-                            } catch (JSONException e) {
-                                throw new RuntimeException(e);
-                            }
+
+
+                                @Override public void onTabUnselected(TabLayout.Tab tab) {}
+                                @Override public void onTabReselected(TabLayout.Tab tab) {}
+                            });
+                            tabLayout.post(() -> {
+                                TabLayout.Tab firstTab = tabLayout.getTabAt(0);
+                                if (firstTab != null) {
+                                    tabLayout.selectTab(firstTab);
+                                    // force trigger manually if needed
+                                    new Thread(() -> {
+                                        JSONArray grades = null;
+                                        try {
+                                            grades = PlatformStorage.loadPlatforms(context).get(courses.get(0).getInt("index")).getGrades(courses.get(0).getString("name"));
+                                            JSONArray finalGrades = grades;
+                                            runOnUiThread(() -> {
+                                                TextView averageGrade = findViewById(R.id.average_grade);
+                                                int sum = 0;
+                                                int count = 0;
+                                                gradeList.clear();
+                                                for (int j = 0; j < finalGrades.length(); j++) {
+                                                    JSONObject grade = finalGrades.optJSONObject(j);
+                                                    try {
+                                                        if (!grade.getString("grade").equals("null")) {
+                                                            try {
+                                                                sum += grade.getInt("grade");
+                                                                count++;
+                                                            } catch (Exception e) {
+                                                            }
+                                                            gradeList.add(grade);  // now this is a checked call
+                                                        }
+                                                    } catch (JSONException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                if (count > 0){
+                                                    try {
+                                                        gradeList.add(0, new JSONObject().put("subject", "ממוצע").put("name", "").put("grade", String.valueOf(sum / count)));
+                                                    } catch (JSONException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                else {
+                                                    try {
+                                                        gradeList.add(0, new JSONObject().put("subject", "ממוצע").put("name", "").put("grade", "0"));
+                                                    } catch (JSONException e) {
+                                                        throw new RuntimeException(e);
+                                                    }
+                                                }
+                                                gradeAdapter.notifyDataSetChanged();
+                                            });
+
+                                            } catch (JSONException e) {
+                                            throw new RuntimeException(e);
+                                        } catch (IOException e) {
+                                            throw new RuntimeException(e);
+                                        }
+
+                                        }).start();
+                                }
+                            });
+
+
+//
+//                            try{
+//                                JSONArray grades = PlatformStorage.loadPlatforms(this).get(courses.get(finalI).getInt("index")).getGrades(courses.get(finalI).getString("name"));
+//                            } catch (JSONException e) {
+//                                throw new RuntimeException(e);
+//                            } catch (IOException e) {
+//                                throw new RuntimeException(e);
+//                            }
+
+
+                        } catch (JSONException e) {
+                            throw new RuntimeException(e);
                         }
-                        averageGrade.setText(String.valueOf(sum/count));
+                    }
+                });
 
-                        gradeAdapter.notifyDataSetChanged();
-                    });
 
-                } catch (JSONException e) {
-                    throw new RuntimeException(e);
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-
-            }).start();
-
-        }
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        }).start();
+//        // Loop through all accounts
+//        for (Platform platform : savedAccounts) {
+//
+//
+//            new Thread(() -> {
+//                try {
+//                    JSONArray grades = platform.getGrades();
+//
+//                    runOnUiThread(() -> {
+//                        TextView averageGrade = findViewById(R.id.average_grade);
+//                        int sum = 0;
+//                        int count = 0;
+//                        for (int i = 0; i < grades.length(); i++) {
+//                            JSONObject grade = grades.optJSONObject(i);
+//                            try {
+//                                if (!grade.getString("grade").equals("null")) {
+//                                    try {
+//                                        sum += grade.getInt("grade");
+//                                        count++;
+//                                    } catch (Exception e){}
+//                                    gradeList.add(grade);  // now this is a checked call
+//                                }
+//                            } catch (JSONException e) {
+//                                throw new RuntimeException(e);
+//                            }
+//                        }
+//                        if (count>0)
+//                            averageGrade.setText(String.valueOf(sum/count));
+//                        else
+//                            averageGrade.setText("0");
+//                        gradeAdapter.notifyDataSetChanged();
+//                    });
+//
+//                } catch (JSONException e) {
+//                    throw new RuntimeException(e);
+//                } catch (IOException e) {
+//                    throw new RuntimeException(e);
+//                }
+//
+//            }).start();
+//
+//        }
 
         // Bottom Navigation
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);

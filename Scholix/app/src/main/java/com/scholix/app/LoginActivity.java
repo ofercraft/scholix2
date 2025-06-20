@@ -97,18 +97,19 @@ public class LoginActivity extends AppCompatActivity {
                                 finish();
                             }
                             else{
-                                Toast.makeText(LoginActivity.this, "Login failed: please check your username and password", Toast.LENGTH_SHORT).show();
+                                runOnUiThread(() ->
+                                        Toast.makeText(LoginActivity.this, "Login failed: please check your username and password", Toast.LENGTH_SHORT).show()
+                                );
 
                             }
 
                         } catch (Exception ex) {
                             ex.printStackTrace();
-                            runOnUiThread(new Runnable() {
-                                @Override
-                                public void run() {
-                                    Toast.makeText(LoginActivity.this, "Login error: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
-                                }
-                            });
+
+                            runOnUiThread(() ->
+                                    Toast.makeText(LoginActivity.this, "Login error: " + ex.getMessage(), Toast.LENGTH_SHORT).show()
+                            );
+
                         }
                     }
                 }).start();

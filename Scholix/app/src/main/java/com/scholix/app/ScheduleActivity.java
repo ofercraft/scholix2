@@ -1,6 +1,7 @@
 package com.scholix.app;
 
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
@@ -19,6 +20,8 @@ import org.json.*;
 
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import okhttp3.*;
 /**
  * Schedule screen with six RTL day‑tabs (“ראשון” … “שישי”).
@@ -31,7 +34,7 @@ public class ScheduleActivity extends BaseActivity {
     private ScheduleAdapter adapter;
     private TabLayout     dayTabs;
     private TextView      dayLabel;   // optional label under the tabs
-
+    private int todayIdx; // declared in your class
     // ────────── DATA ─────────────────────────────────────────
     private final ArrayList<JSONObject> scheduleItems = new ArrayList<>();
     private final OkHttpClient client = UnsafeOkHttpClient.getUnsafeOkHttpClient();
@@ -69,9 +72,9 @@ public class ScheduleActivity extends BaseActivity {
 
         MaterialButtonToggleGroup scheduleToggleGroup = findViewById(R.id.schedule_mode_toggle);
         dayTabs  = findViewById(R.id.day_tabs);
-
         if (scheduleToggleGroup != null) {
             scheduleToggleGroup.check(R.id.btn_updated); // set default
+
             scheduleToggleGroup.addOnButtonCheckedListener((group, checkedId, isChecked) -> {
                 if (isChecked) {
 
@@ -94,16 +97,18 @@ public class ScheduleActivity extends BaseActivity {
         scheduleRecyclerView.setLayoutManager(new LinearLayoutManager(this));
         adapter = new ScheduleAdapter(this, scheduleItems);
         scheduleRecyclerView.setAdapter(adapter);
+        AtomicInteger todayIdx = new AtomicInteger((Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 6) % 7); // your starting value
+        if (todayIdx.get() > 5) todayIdx.set(0);
 
-        int todayIdx = (Calendar.getInstance().get(Calendar.DAY_OF_WEEK) + 6) % 7;
-        if (todayIdx > 5) todayIdx = 0;
+        int finalIdx = todayIdx.get();
 
-        dayTabs.selectTab(dayTabs.getTabAt(todayIdx));
-        updateDayLabel(todayIdx);
+        dayTabs.selectTab(dayTabs.getTabAt(finalIdx));
+        updateDayLabel(finalIdx);
+
         Platform platform = PlatformStorage.getAccount(this, 0);
         System.out.println(platform);
         scheduleItems.clear();
-        fetchScheduleUpdated(todayIdx);
+        fetchScheduleOriginal(dayTabs.getSelectedTabPosition());
 
         TabLayout dayTabs = findViewById(R.id.day_tabs);
 
@@ -115,36 +120,48 @@ public class ScheduleActivity extends BaseActivity {
                 for (int i = 0; i < scheduledDays.length(); i++) {
                     allowed.add(scheduledDays.getInt(i));
                 }
+                if (!allowed.contains(todayIdx.get())) {
+                    System.out.println(todayIdx.get());
+                    todayIdx.set(todayIdx.get() - 1);
+                }
 
                 // 2. now switch back to the UI thread to hide/show
                 runOnUiThread(() -> {
                     ViewGroup tabStrip = (ViewGroup) dayTabs.getChildAt(0);
-                    for (int i = 0; i < tabStrip.getChildCount(); i++) {
-                        View tabView = tabStrip.getChildAt(i);
-                        tabView.setVisibility( allowed.contains(i)
-                                ? View.VISIBLE
-                                : View.GONE );
+                    dayTabs.removeAllTabs();
+
+                    // 2. Define Hebrew day names
+                    String[] dayNames = {"Sun", "Mon", "Tues", "Wed", "Thurs", "Fri"};
+
+                    // 3. Re-add only allowed tabs
+                    for (int i = 0; i < dayNames.length; i++) {
+                        if (allowed.contains(i)) {
+                            dayTabs.addTab(dayTabs.newTab().setText(dayNames[i]));
+                        }
+                    }
+
+                    if (dayTabs != null) {
+                        dayTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+                            @Override public void onTabSelected(TabLayout.Tab tab) {
+                                updateDayLabel(tab.getPosition());
+                                fetchScheduleUpdated(tab.getPosition());
+                            }
+                            @Override public void onTabUnselected(TabLayout.Tab tab) {}
+                            @Override public void onTabReselected(TabLayout.Tab tab) {}
+                        });
+                        dayTabs.selectTab(dayTabs.getTabAt(todayIdx.get()));   // will trigger fetchSchedule
+                    } else {
+                        fetchScheduleUpdated(todayIdx.get());
                     }
                 });
+
+
             } catch (JSONException|IOException e) {
                 e.printStackTrace();
             }
         }).start();
 
 
-        if (dayTabs != null) {
-            dayTabs.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
-                @Override public void onTabSelected(TabLayout.Tab tab) {
-                    updateDayLabel(tab.getPosition());
-                    fetchScheduleUpdated(tab.getPosition());
-                }
-                @Override public void onTabUnselected(TabLayout.Tab tab) {}
-                @Override public void onTabReselected(TabLayout.Tab tab) {}
-            });
-            dayTabs.selectTab(dayTabs.getTabAt(todayIdx));   // will trigger fetchSchedule
-        } else {
-            fetchScheduleUpdated(todayIdx);
-        }
 
         // Bottom navigation
         BottomNavigationView bottomNav = findViewById(R.id.bottom_navigation);
@@ -168,10 +185,9 @@ public class ScheduleActivity extends BaseActivity {
     private void fetchScheduleUpdated(int dayIdx){
         if (isLoadingSchedule) return;
         isLoadingSchedule = true;
-        System.out.println("a");
         Platform platform = PlatformStorage.getAccount(this, 0);
         scheduleItems.clear();
-
+        System.out.println("Fetching updated schedule.");
         new Thread(() -> {
             // Perform network call here safely
             try {
@@ -195,10 +211,9 @@ public class ScheduleActivity extends BaseActivity {
     private void fetchScheduleOriginal(int dayIdx){
         if (isLoadingSchedule) return;
         isLoadingSchedule = true;
-        System.out.println("b");
         Platform platform = PlatformStorage.getAccount(this, 0);
         scheduleItems.clear();
-
+        System.out.println("Fetching original schedule.");
         new Thread(() -> {
             // Perform network call here safely
             try {
@@ -207,7 +222,6 @@ public class ScheduleActivity extends BaseActivity {
                     String index = it.next(); // "1", "2", etc.
                     JSONObject hour = schedule.getJSONObject(index);
                     scheduleItems.add(hour);
-                    System.out.println(hour);
                 }
                 runOnUiThread(() -> {
                     adapter.notifyDataSetChanged();

@@ -16,52 +16,20 @@ import androidx.annotation.NonNull;
 import androidx.core.widget.NestedScrollView;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.scholix.app.api.Platform;
+import com.scholix.app.api.PlatformStorage;
+
 import java.util.List;
 
 public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountViewHolder> {
 
-    private List<Account> accountList;
-    private final DeleteListener deleteListener;
-    private final SaveListener saveListener;
-    private final String[] sources = {"Classroom", "Bar Ilan", "Webtop"};
+    private List<Platform> accountList;
+    private Context context;
 
-    public interface DeleteListener {
-        void onDelete(int position);
-    }
 
-    public interface SaveListener {
-        void onSave();
-    }
-
-    public AccountAdapter(List<Account> accountList, DeleteListener deleteListener, SaveListener saveListener) {
-        this.deleteListener = deleteListener;
-        this.saveListener = saveListener;
-
-        // Find the main account and move it to top
-        int mainIndex = -1;
-        for (int i = 0; i < accountList.size(); i++) {
-            if (accountList.get(i).isMain()) {
-                System.out.println("dsadasasdasadad");
-                mainIndex = i;
-                break;
-            }
-        }
-
-        if (mainIndex > 0) {
-            Account mainAccount = accountList.remove(mainIndex);
-            accountList.add(0, mainAccount);
-        }
-
-        // If none marked, make first one main
-        if (accountList.size() > 0) {
-            for (Account acc : accountList) {
-                acc.setMain(false);
-            }
-            accountList.get(0).setMain(true);
-        }
-
+    public AccountAdapter(Context context,List<Platform> accountList) {
         this.accountList = accountList;
-
+        this.context = context;
     }
 
     @NonNull
@@ -73,33 +41,15 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
 
     @Override
     public void onBindViewHolder(@NonNull AccountViewHolder holder, int position) {
-        Account account = accountList.get(position);
+        Platform account = accountList.get(position);
         holder.name.setText(account.getName());
+        System.out.println(account);
+        System.out.println(account);
+        System.out.println(account);
+        System.out.println(account);
         holder.username.setText(account.getUsername());
+
         holder.password.setText(account.getPassword());
-        holder.password.setText(account.getPassword());
-
-        // Source Spinner setup
-        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(holder.itemView.getContext(),
-                android.R.layout.simple_spinner_item, sources);
-        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        holder.sourceSpinner.setAdapter(spinnerAdapter);
-
-        // Set source spinner selection
-        int sourceIndex = 0;
-        for (int i = 0; i < sources.length; i++) {
-            if (sources[i].equals(account.getSource())) {
-                sourceIndex = i;
-                break;
-            }
-        }
-        holder.sourceSpinner.setSelection(sourceIndex);
-
-        // Year Spinner setup
-        ArrayAdapter<String> yearAdapter = new ArrayAdapter<>(holder.itemView.getContext(),
-                android.R.layout.simple_spinner_item, new String[]{"1", "2", "3"});
-        yearAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        holder.yearSpinner.setAdapter(yearAdapter);
 
         if (account.isEditing()) {
             // Edit Mode
@@ -111,16 +61,7 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
             holder.saveBtn.setVisibility(View.VISIBLE);
             holder.editBtn.setVisibility(View.GONE);
             holder.deleteBtn.setVisibility(View.VISIBLE);
-            holder.sourceSpinner.setVisibility(View.VISIBLE);
             holder.password.setInputType(InputType.TYPE_CLASS_TEXT);
-
-            // Show Year Spinner if Bar Ilan
-            if (account.getSource().equals("Bar Ilan")) {
-                holder.yearSpinner.setVisibility(View.VISIBLE);
-                holder.yearSpinner.setSelection(account.getYear() - 1); // set current year
-            } else {
-                holder.yearSpinner.setVisibility(View.GONE);
-            }
 
         } else {
             // View Mode
@@ -132,13 +73,11 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
             holder.saveBtn.setVisibility(View.GONE);
             holder.editBtn.setVisibility(View.VISIBLE);
             holder.deleteBtn.setVisibility(View.VISIBLE);
-            holder.sourceSpinner.setVisibility(View.GONE);
-            holder.yearSpinner.setVisibility(View.GONE);
         }
 
         // Edit button clicked → switch to edit mode
         holder.editBtn.setOnClickListener(v -> {
-            account.setEditing(true);
+            account.startEditing();
             notifyItemChanged(position);
 
             RecyclerView recyclerView = (RecyclerView) holder.itemView.getParent();
@@ -156,57 +95,38 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
 
             String updatedUsername = holder.username.getText().toString();
             String updatedPassword = holder.password.getText().toString();
-            String updatedSource = holder.sourceSpinner.getSelectedItem().toString();
 
             if (updatedUsername.isEmpty() || updatedPassword.isEmpty()) {
                 Toast.makeText(holder.itemView.getContext(), "Fill all fields", Toast.LENGTH_SHORT).show();
                 return;
             }
 
-            if (updatedSource.equals("Webtop")) {
-                // Validate Webtop login
-                new Thread(() -> {
-                    try {
-                        LoginManager loginManager = new LoginManager();
-                        LoginManager.LoginResult result = loginManager.validateLogin(updatedUsername, updatedPassword);
+            // Validate Webtop login
+            new Thread(() -> {
+                try {
+                    LoginManager loginManager = new LoginManager();
+                    boolean result = PlatformStorage.checkPlatform(context,updatedUsername, updatedPassword);
 
-                        ((PlatformsActivity) holder.itemView.getContext()).runOnUiThread(() -> {
-                            if (result.success) {
-                                account.setName(updatedName);
-                                account.setUsername(updatedUsername);
-                                account.setPassword(updatedPassword);
-                                account.setSource(updatedSource);
-                                account.setEditing(false);
-                                notifyItemChanged(position);
-                                saveListener.onSave();
-                                Toast.makeText(holder.itemView.getContext(), "Webtop Account Updated", Toast.LENGTH_SHORT).show();
-                            } else {
-                                Toast.makeText(holder.itemView.getContext(), "Webtop Login Failed: " + result.message, Toast.LENGTH_SHORT).show();
-                            }
-                        });
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        ((PlatformsActivity) holder.itemView.getContext()).runOnUiThread(() ->
-                                Toast.makeText(holder.itemView.getContext(), "Login Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
-                        );
-                    }
-                }).start();
-            } else {
-                // Non-Webtop → Save immediately
-                account.setUsername(updatedUsername);
-                account.setName(updatedName);
-                account.setPassword(updatedPassword);
-                account.setSource(updatedSource);
-                // Save Year if Bar Ilan
-                if (updatedSource.equals("Bar Ilan")) {
-                    int selectedYear = Integer.parseInt(holder.yearSpinner.getSelectedItem().toString());
-                    account.setYear(selectedYear);
+                    ((PlatformsActivity) holder.itemView.getContext()).runOnUiThread(() -> {
+                        if (result) {
+                            account.setName(updatedName);
+                            account.setUsername(updatedUsername);
+                            account.setPassword(updatedPassword);
+                            account.stopEditing();
+                            PlatformStorage.updatePlatform(context, position, account);
+                            notifyItemChanged(position);
+                            Toast.makeText(holder.itemView.getContext(), "Webtop Account Updated", Toast.LENGTH_SHORT).show();
+                        } else {
+                            Toast.makeText(holder.itemView.getContext(), "Login Failed", Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    ((PlatformsActivity) holder.itemView.getContext()).runOnUiThread(() ->
+                            Toast.makeText(holder.itemView.getContext(), "Login Error: " + e.getMessage(), Toast.LENGTH_SHORT).show()
+                    );
                 }
-                account.setEditing(false);
-                notifyItemChanged(position);
-                saveListener.onSave();
-                Toast.makeText(holder.itemView.getContext(), "Account Updated", Toast.LENGTH_SHORT).show();
-            }
+            }).start();
 
             // Close keyboard
             InputMethodManager imm = (InputMethodManager) holder.itemView.getContext()
@@ -215,7 +135,13 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
         });
 
         // Delete button
-        holder.deleteBtn.setOnClickListener(v -> deleteListener.onDelete(position));
+        holder.deleteBtn.setOnClickListener(v -> {
+            PlatformStorage.removePlatform(context, position);
+            accountList.remove(position); // remove from your adapter's data list
+            notifyItemRemoved(position);
+            notifyItemRangeChanged(position, accountList.size()); // optional: keep indices in sync
+        });
+
     }
 
     @Override
@@ -226,7 +152,6 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
     public static class AccountViewHolder extends RecyclerView.ViewHolder {
         EditText username, password, name;
 
-        Spinner sourceSpinner, yearSpinner;
         Button editBtn, deleteBtn, saveBtn;
 
         public AccountViewHolder(@NonNull View itemView) {
@@ -235,8 +160,6 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
             password = itemView.findViewById(R.id.account_password);
             name = itemView.findViewById(R.id.account_name);
 
-            sourceSpinner = itemView.findViewById(R.id.account_source_spinner);
-            yearSpinner = itemView.findViewById(R.id.account_year_spinner);
             editBtn = itemView.findViewById(R.id.edit_button);
             deleteBtn = itemView.findViewById(R.id.delete_button);
             saveBtn = itemView.findViewById(R.id.save_button);

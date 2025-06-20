@@ -42,17 +42,18 @@ import okhttp3.Response;
 
 public class BarIlanPlatform implements Platform {
 
-    public String name, studentId, password, token;
-    public ArrayList<JSONObject> courses = new ArrayList<>();
+    public String name, studentId, password, token,username;
+    private ArrayList<JSONObject> courses = new ArrayList<>();
     public final OkHttpClient client = new OkHttpClient();
     public boolean loggedIn = false;
-
+    public boolean editing = false;
     public BarIlanPlatform() {}
 
 
     public BarIlanPlatform(String studentId, String password) throws IOException, JSONException {
         this.studentId = studentId;
         this.password = password;
+        this.username=studentId;
 
         // Login
         JSONObject loginJson = new JSONObject(client.newCall(
@@ -106,6 +107,7 @@ public class BarIlanPlatform implements Platform {
             courses.add(new JSONObject()
                     .put("name", src.getString("krs_shm"))
                     .put("year", src.getString("krs_snl"))
+                    .put("semester", src.getString("krs_sms_select"))
                     .put("teacher", String.join(" ", parts))
             );
         }
@@ -266,6 +268,11 @@ public class BarIlanPlatform implements Platform {
 
     @Override
     public String getName() { return name; }
+    @Override
+    public String getUsername() { return username; }
+    @Override
+    public String getPassword() { return password; }
+
     public String getStudentId() { return studentId; }
 
     @Override
@@ -283,13 +290,7 @@ public class BarIlanPlatform implements Platform {
     public boolean isLoggedIn() {
         return loggedIn;
     }
-    @Override
-    public JSONObject toLoginJson() throws JSONException {
-        JSONObject obj = new JSONObject();
-        obj.put("username", this.studentId); // or username field
-        obj.put("password", this.password);  // you'll need to store this if not already
-        return obj;
-    }
+
     public boolean refreshCookies() throws IOException, JSONException {
         JSONObject loginData = new JSONObject();
         loginData.put("captchaToken", null);
@@ -305,7 +306,6 @@ public class BarIlanPlatform implements Platform {
         Response response = client.newCall(request).execute();
         String responseBody = response.body() != null ? response.body().string() : "";
         JSONObject jsonResponse = new JSONObject(responseBody);
-        System.out.println(jsonResponse);
         if (jsonResponse.isNull("success") || !jsonResponse.getBoolean("success")) {
             System.out.println("Login error: " + jsonResponse.optString("errorDescription", "Unknown error"));
             loggedIn=false;
@@ -338,7 +338,6 @@ public class BarIlanPlatform implements Platform {
 
     public static Platform fromJson(JSONObject obj) throws JSONException, IOException {
         // 1) Extract credentials & re-login
-        System.out.println(obj);
         String studentId = obj.getString("studentId");
         String password  = obj.getString("password");
         BarIlanPlatform p = new BarIlanPlatform();
@@ -349,6 +348,7 @@ public class BarIlanPlatform implements Platform {
         p.loggedIn = obj.optBoolean("loggedIn", p.loggedIn);
         p.studentId = obj.optString("studentId", p.studentId);
         p.password = obj.optString("password", p.password);
+        p.username = obj.optString("studentId", p.username);
 
         // 3) Restore courses list
         p.courses.clear();
@@ -365,4 +365,24 @@ public class BarIlanPlatform implements Platform {
         return new JSONArray();
     }
 
+    public boolean isEditing(){
+        return editing;
+    };
+    public void startEditing(){
+        editing = true;
+    };
+    public void stopEditing(){
+        editing = false;
+    };
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setUsername(String username){
+        this.username = username;
+    };
+    public void setPassword(String password){
+        this.password = password;
+    };
 }
