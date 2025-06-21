@@ -47,6 +47,7 @@ public class BarIlanPlatform implements Platform {
     public final OkHttpClient client = new OkHttpClient();
     public boolean loggedIn = false;
     public boolean editing = false;
+    private JSONArray grades;
     public BarIlanPlatform() {}
 
 
@@ -112,6 +113,15 @@ public class BarIlanPlatform implements Platform {
             );
         }
         loggedIn = true;
+        new Thread(() ->{
+            try {
+                grades = getGrades("all");
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            } catch (JSONException e) {
+                throw new RuntimeException(e);
+            }
+        });
     }
 
 
