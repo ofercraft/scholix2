@@ -10,6 +10,7 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -19,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.scholix.app.api.Platform;
 import com.scholix.app.api.PlatformStorage;
 
+import java.util.Collections;
 import java.util.List;
 
 public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountViewHolder> {
@@ -42,14 +44,15 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
     @Override
     public void onBindViewHolder(@NonNull AccountViewHolder holder, int position) {
         Platform account = accountList.get(position);
-        holder.name.setText(account.getName());
         System.out.println(account);
         System.out.println(account);
         System.out.println(account);
         System.out.println(account);
         holder.username.setText(account.getUsername());
+        holder.name.setText(account.getName());
 
         holder.password.setText(account.getPassword());
+        holder.mainGlow.setVisibility(position == 0 ? View.VISIBLE : View.GONE);
 
         if (account.isEditing()) {
             // Edit Mode
@@ -153,6 +156,7 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
         EditText username, password, name;
 
         Button editBtn, deleteBtn, saveBtn;
+        View mainGlow;
 
         public AccountViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -163,6 +167,19 @@ public class AccountAdapter extends RecyclerView.Adapter<AccountAdapter.AccountV
             editBtn = itemView.findViewById(R.id.edit_button);
             deleteBtn = itemView.findViewById(R.id.delete_button);
             saveBtn = itemView.findViewById(R.id.save_button);
+            mainGlow = itemView.findViewById(R.id.main_glow); // 🔥 Add this
+
         }
     }
+    public List<Platform> getPlatforms() {
+        return accountList;
+    }
+
+    public void swapItems(int from, int to) {
+        Collections.swap(accountList, from, to);
+        notifyItemMoved(from, to);
+        // rebind the affected range so your “position==0” glow logic runs
+        notifyItemRangeChanged(Math.min(from, to), Math.abs(from - to) + 1);
+    }
+
 }

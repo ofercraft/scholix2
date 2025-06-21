@@ -115,21 +115,6 @@ public class HomeActivity extends BaseActivity {
         adapter = new ScheduleAdapter(this, scheduleItems);
         scheduleRecyclerView.setAdapter(adapter);
 
-        new Thread(() -> {
-            // Perform network call here safely
-            try {
-                System.out.println(PlatformStorage.getCourses(this));
-
-
-
-
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }).start();
-
-
-
         // Bottom Navigation Bar Setup
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         setupBottomNavigation(bottomNavigationView);
@@ -170,7 +155,6 @@ public class HomeActivity extends BaseActivity {
                     String index = it.next(); // "1", "2", etc.
                     JSONObject hour = schedule.getJSONObject(index);
                     scheduleItems.add(hour);
-                    System.out.println(hour);
                 }
                 runOnUiThread(() -> {
                     adapter.notifyDataSetChanged();
@@ -193,7 +177,6 @@ public class HomeActivity extends BaseActivity {
                     String index = it.next(); // "1", "2", etc.
                     JSONObject hour = schedule.getJSONObject(index);
                     scheduleItems.add(hour);
-                    System.out.println(hour);
                 }
                 runOnUiThread(() -> {
                     adapter.notifyDataSetChanged();

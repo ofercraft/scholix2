@@ -17,6 +17,7 @@ import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.tabs.TabLayout;
@@ -85,9 +86,6 @@ public class GradesActivity extends BaseActivity {
                     for(int i=0; i<courses.size(); i++){
                         try {
                             tabLayout.addTab(tabLayout.newTab().setText(courses.get(i).getString("name")));
-
-                            System.out.println("1");
-                            int finalI = i;
                             tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
                                 @Override public void onTabSelected(TabLayout.Tab tab) {
                                     currentTabVersion++; // bump version
@@ -274,6 +272,26 @@ public class GradesActivity extends BaseActivity {
         // Bottom Navigation
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
         setupBottomNavigation(bottomNavigationView);
+
+
+        SwipeRefreshLayout swipeRefreshLayout = findViewById(R.id.swipe_refresh);
+        swipeRefreshLayout.setOnRefreshListener(() -> {
+            new Thread(() -> {
+                try {
+                    PlatformStorage.refreshCookies(context);
+
+                    runOnUiThread(() -> {
+                        swipeRefreshLayout.setRefreshing(false);
+                        recreate(); // 🔁 this reruns onCreate()
+                    });
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    runOnUiThread(() -> swipeRefreshLayout.setRefreshing(false));
+                }
+            }).start();
+        });
+
     }
 
     @Override

@@ -91,7 +91,6 @@ public class LoginActivity extends AppCompatActivity {
                             List<Platform> result = PlatformStorage.addPlatform(context,username, password);
 
                             if (!result.isEmpty()){
-                                System.out.println(PlatformStorage.loadPlatforms(context));
                                 Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                                 startActivity(intent);
                                 finish();

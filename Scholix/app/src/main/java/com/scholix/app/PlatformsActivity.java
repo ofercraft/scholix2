@@ -83,17 +83,21 @@ public class PlatformsActivity extends BaseActivity {
                 ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
 
             @Override
-            public boolean onMove(@NonNull RecyclerView recyclerView,
-                                  @NonNull RecyclerView.ViewHolder viewHolder,
+            public boolean onMove(@NonNull RecyclerView rv,
+                                  @NonNull RecyclerView.ViewHolder vh,
                                   @NonNull RecyclerView.ViewHolder target) {
-                int from = viewHolder.getAdapterPosition();
-                int to = target.getAdapterPosition();
+                int from = vh.getAdapterPosition();
+                int to   = target.getAdapterPosition();
 
-                Collections.swap(accountList, from, to);
-                accountAdapter.notifyItemMoved(from, to);
+                // 1) swap inside the adapter
+                accountAdapter.swapItems(from, to);
+
+                // 2) persist the new order from the adapter’s list
+                PlatformStorage.savePlatforms(context, accountAdapter.getPlatforms());
 
                 return true;
             }
+
 
             @Override
             public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {

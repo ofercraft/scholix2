@@ -142,7 +142,7 @@ public class BarIlanPlatform implements Platform {
     public JSONObject getOriginalSchedule(int dayIndex){
         return getSchedule(dayIndex);
     }
-    public JSONArray getGrades(String course) throws IOException, JSONException {
+    public JSONArray getGrades1(String course) throws IOException, JSONException {
         JSONObject loginData = new JSONObject();
         loginData.put("urlParameters", new ArrayList<>());
 
@@ -206,10 +206,31 @@ public class BarIlanPlatform implements Platform {
                 }
             }
         }
-
-
+        Log.d("BarIlanPlatform", "grades refreshed!");
         return grades;
     }
+
+
+
+    public JSONArray getGrades(String course) throws IOException, JSONException {
+        // Lazy load if grades not set
+        if (grades == null) {
+            Log.w("BarIlanPlatform", "Grades were null, loading using getGrades1...");
+            grades = getGrades1("all"); // fetch all grades and cache
+        }
+
+        JSONArray filtered = new JSONArray();
+        for (int i = 0; i < grades.length(); i++) {
+            JSONObject grade = grades.getJSONObject(i);
+            if (course.equals("all") || grade.getString("subject").equals(course)) {
+                filtered.put(grade);
+            }
+        }
+
+        return filtered;
+    }
+
+
     public void download(JSONObject downloadData) throws IOException, JSONException {
         JSONObject loginData = new JSONObject();
         loginData.put("scan_location", downloadData.getString("scanLocation"));
@@ -324,6 +345,8 @@ public class BarIlanPlatform implements Platform {
         this.token = jsonResponse.getString("token");
         this.studentId=this.studentId;
         loggedIn=true;
+        this.grades = getGrades1("all");
+
         return true;
     }
     @Override
@@ -343,6 +366,8 @@ public class BarIlanPlatform implements Platform {
 
         root.put("token",     token);
         root.put("loggedIn",  loggedIn);
+        root.put("grades",  grades);
+
         return root;
     }
 
@@ -359,6 +384,7 @@ public class BarIlanPlatform implements Platform {
         p.studentId = obj.optString("studentId", p.studentId);
         p.password = obj.optString("password", p.password);
         p.username = obj.optString("studentId", p.username);
+        p.grades = obj.optJSONArray("grades");
 
         // 3) Restore courses list
         p.courses.clear();
