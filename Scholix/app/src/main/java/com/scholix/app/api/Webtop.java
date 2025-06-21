@@ -36,6 +36,7 @@ public class Webtop {
     private String institution;
     private String name;
     private String classCode;
+    public ArrayList<JSONObject> courses = new ArrayList<>();
 
     public Webtop(String username, String password) throws IOException, JSONException {
         String loginUrl = "https://webtopserver.smartschool.co.il/server/api/user/LoginByUserNameAndPassword";
@@ -78,8 +79,10 @@ public class Webtop {
         this.institution = dataObj.getString("institutionCode");
         this.name = dataObj.getString("firstName") + " " + dataObj.getString("lastName");
         this.cookies = response.headers("Set-Cookie");
-
-
+        this. courses.add(new JSONObject()
+                .put("name", "Webtop")
+                .put("year", java.time.Year.now().getValue())
+        );
 
 //        return new Webtop.LoginResult(true, "fine", new Object[]{cookies, studentId, dataObj, classCode, institution, name});
     }
@@ -277,5 +280,7 @@ public class Webtop {
 
         return gradeList;
     }
-
+    public ArrayList<JSONObject> getCourses(){
+        return courses;
+    }
 }

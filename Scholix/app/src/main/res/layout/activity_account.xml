@@ -168,22 +168,7 @@
                 android:ellipsize="end" />
         </LinearLayout>
 
-        <!-- Language Switch Button -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_switch_language"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="swtcd"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="24dp"
-            android:layout_marginStart="16dp"
-            android:layout_marginEnd="16dp"
-            app:cornerRadius="16dp"
-            android:textColor="@android:color/white"
-            android:backgroundTint="@color/backgroundAccent2"
-            android:icon="@drawable/ic_logo"
-            android:iconTint="@android:color/white"
-            android:gravity="center" />
+
 
     </LinearLayout>
 

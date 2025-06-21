@@ -6,6 +6,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -15,11 +16,21 @@ import static java.time.format.DateTimeFormatter.ofPattern;
 public class DemoPlatform implements Platform {
 
     public boolean loggedIn = false;
-    public String name;
+    boolean editing = false;
+    public String name,username,password;
+    private ArrayList<JSONObject> courses = new ArrayList<>();
+
     public DemoPlatform(String username, String password) throws IOException, JSONException {
         if(Objects.equals(username, "demo") && Objects.equals(password, "demo")){
             loggedIn = true;
             name="demo";
+            this.username="demo";
+            this.password="demo";
+            this.courses = new ArrayList<>();
+            this.courses.add(new JSONObject()
+                    .put("name", "demo")
+                    .put("year", java.time.Year.now().getValue())
+            );
         }
     }
 
@@ -141,11 +152,23 @@ public class DemoPlatform implements Platform {
 
     @Override
     public String getName() { return name; }
+    @Override
+    public String getUsername() { return username; }
+    @Override
+    public String getPassword() { return password; }
 
     @Override
     public String toString() {
-        return "Platform{" + "name='" + name + '\'' + "'}";
+        return "Platform{" +
+                "loggedIn=" + loggedIn +
+                ", editing=" + editing +
+                ", name='" + name + '\'' +
+                ", username='" + username + '\'' +
+                ", password='" + password + '\'' +
+                ", courses=" + courses +
+                '}';
     }
+
     private String findColorClass(String subject) {
         if (SUBJECT_COLORS.containsKey(subject)) {
             return SUBJECT_COLORS.get(subject);
@@ -187,13 +210,6 @@ public class DemoPlatform implements Platform {
     public boolean isLoggedIn() {
         return loggedIn;
     }
-    @Override
-    public JSONObject toLoginJson() throws JSONException {
-        JSONObject obj = new JSONObject();
-        obj.put("username", "demo"); // or username field
-        obj.put("password", "demo");  // you'll need to store this if not already
-        return obj;
-    }
 
     public boolean refreshCookies(){
         loggedIn = true;
@@ -204,6 +220,9 @@ public class DemoPlatform implements Platform {
         obj.put("class", getClass().getName());
         obj.put("loggedIn", this.loggedIn);
         obj.put("name",     this.name);
+        obj.put("username",     this.username);
+        obj.put("password",     this.password);
+
         return obj;
     }
 
@@ -212,13 +231,38 @@ public class DemoPlatform implements Platform {
      * Recreate an instance from the JSON produced by toJson().
      */
     public static DemoPlatform fromJson(JSONObject obj) throws JSONException, IOException {
-        DemoPlatform inst = new DemoPlatform("demo", "demo");
+        DemoPlatform p = new DemoPlatform("demo", "demo");
 
-        inst.loggedIn = obj.optBoolean("loggedIn", false);
-        inst.name     = obj.optString("name", null);
-        return inst;
+        p.loggedIn = obj.optBoolean("loggedIn", false);
+        p.name     = obj.optString("name", null);
+
+        return p;
     }
     public JSONArray getScheduleIndexes(){
-        return new JSONArray();
+        return new JSONArray().put(0).put(1).put(2).put(3).put(4).put(5);
+    }
+
+
+    public boolean isEditing(){
+        return editing;
+    };
+    public void startEditing(){
+        editing = true;
+    };
+    public void stopEditing(){
+        editing = false;
+    };
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setUsername(String username){
+        this.username = username;
+    };
+    public void setPassword(String password){
+        this.password = password;
+    };
+    public ArrayList<JSONObject> getCourses(){
+        return courses;
     }
 }

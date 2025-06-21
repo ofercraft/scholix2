@@ -1,5 +1,6 @@
 package com.scholix.app;
 
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,6 +36,9 @@ public class GradeAdapter extends RecyclerView.Adapter<GradeAdapter.GradeViewHol
         JSONObject grade = gradeList.get(position);
         try {
             holder.subjectText.setText(grade.getString("subject"));
+            if(grade.getString("subject").equals("ממוצע"))
+                holder.subjectText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 40); // Bigger text
+
             holder.nameText.setText(grade.getString("name"));
             String displayGrade = grade.getString("grade");
             holder.gradeText.setText(displayGrade);

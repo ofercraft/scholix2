@@ -29,55 +29,21 @@
             android:textSize="24sp"
             android:textStyle="bold" />
 
-        <androidx.cardview.widget.CardView
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/platform_tabs"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_margin="12dp"
-            app:cardCornerRadius="20dp"
+            app:tabMode="scrollable"
+            app:tabGravity="center"
+            app:tabIndicatorColor="@color/colorPrimary"
+            app:tabIndicatorHeight="3dp"
+            android:layout_marginBottom="16dp"
+            app:tabSelectedTextColor="@color/colorPrimary"
+            app:tabTextColor="@color/tab_unselected"
+            app:tabTextAppearance="@style/DayTabText"
+            style="@style/background" />
 
-            app:cardElevation="4dp"
-            android:layout_gravity="center_horizontal">
 
-            <androidx.constraintlayout.widget.ConstraintLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layoutDirection="locale"
-                android:padding="24dp"
-                android:background="@color/backgroundAccent"
-                android:elevation="4dp">
-
-                <!-- Title aligned to the start (RTL or LTR aware) -->
-                <TextView
-                    android:id="@+id/average_title"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="@string/average"
-                    android:textSize="50sp"
-                    android:textColor="@color/text"
-                    android:textStyle="bold"
-                    android:textAlignment="viewStart"
-                    android:gravity="start"
-                    app:layout_constraintStart_toStartOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
-
-                <!-- Grade aligned to the end (RTL or LTR aware) -->
-                <TextView
-                    android:id="@+id/average_grade"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:textSize="110sp"
-                    android:textColor="@color/textAccent"
-                    android:textStyle="bold"
-                    android:textAlignment="viewEnd"
-                    android:gravity="end"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintTop_toTopOf="parent"
-                    app:layout_constraintBottom_toBottomOf="parent" />
-
-            </androidx.constraintlayout.widget.ConstraintLayout>
-
-        </androidx.cardview.widget.CardView>
 
         <!-- Scrollable Grades List -->
         <androidx.core.widget.NestedScrollView

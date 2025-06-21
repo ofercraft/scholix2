@@ -43,7 +43,12 @@ public class WebtopPlatform implements Platform {
     public String cookies;
     public final OkHttpClient client = UnsafeOkHttpClient.getUnsafeOkHttpClient();
     boolean loggedIn = false;
-    public WebtopPlatform() {}
+    public boolean editing = false;
+    private ArrayList<JSONObject> courses = new ArrayList<>();
+
+    public WebtopPlatform() {
+
+    }
 
     public WebtopPlatform(String username, String password) throws IOException, JSONException {
         JSONObject loginData = new JSONObject();
@@ -76,10 +81,20 @@ public class WebtopPlatform implements Platform {
         this.username = username;
         this.password = password;
         loggedIn = true;
+        this.courses.add(new JSONObject()
+                .put("name", "Webtop")
+                .put("semester", getCurrentSemester())
+                .put("year", java.time.Year.now().getValue())
+        );
     }
 
     @Override
     public String getName() { return name; }
+    @Override
+    public String getUsername() { return username; }
+    @Override
+    public String getPassword() { return password; }
+
     public String getStudentId() { return studentId; }
     public String getInstitution() { return institution; }
 
@@ -131,19 +146,23 @@ public class WebtopPlatform implements Platform {
         int year = java.time.LocalDate.now().getYear();
         return getGrades(year, getCurrentSemester());
     }
+    public JSONArray getGrades(String course, String semester) {
+        int year = java.time.LocalDate.now().getYear();
+        return getGrades(year, semester);
+    }
     public JSONArray getGrades(String course) {
         int year = java.time.LocalDate.now().getYear();
-        return getGrades(year, course);
+        return getGrades(year, getCurrentSemester());
     }
-    public JSONArray getGrades(int year, String course) {
+    public JSONArray getGrades(int year, String semester) {
         JSONArray grades = new JSONArray();
         try {
             int periodId;
-            if ("a".equals(course)) {
+            if ("a".equals(semester)) {
                 periodId = 1103;
-            } else if ("b".equals(course)) {
+            } else if ("b".equals(semester)) {
                 periodId = 1102;
-            } else if ("ab".equals(course)) {
+            } else if ("ab".equals(semester)) {
                 periodId = 0;
             } else {
                 throw new IllegalArgumentException("Invalid period");
@@ -512,14 +531,6 @@ public class WebtopPlatform implements Platform {
         SUBJECT_COLORS.put("cancel",      "cancel-cell");
     }
 
-    @Override
-    public JSONObject toLoginJson() throws JSONException {
-        JSONObject obj = new JSONObject();
-        obj.put("username", this.username); // or username field
-        obj.put("password", this.password);  // you'll need to store this if not already
-        return obj;
-    }
-
 
     public boolean refreshCookies() throws IOException, JSONException {
         JSONObject loginData = new JSONObject();
@@ -547,7 +558,7 @@ public class WebtopPlatform implements Platform {
         this.studentId = data.getString("userId");
         this.classCode = data.getString("classCode") + "|" + data.get("classNumber");
         this.institution = data.getString("institutionCode");
-        this.name = data.getString("firstName") + " " + data.getString("lastName");
+//        this.name = data.getString("firstName") + " " + data.getString("lastName");
         java.util.List<String> cookieList = (java.util.List<String>) response.headers("Set-Cookie");
         this.cookies = String.join("; ", cookieList);
         loggedIn = true;
@@ -581,14 +592,40 @@ public class WebtopPlatform implements Platform {
 
         // 2) restore all other fields from JSON
         p.username    = obj.optString("username",   p.username);
-        p.password    = obj.optString("username",   p.password);
+        p.password    = obj.optString("password",   p.password);
         p.name        = obj.optString("name",        p.name);
         p.institution = obj.optString("institution", p.institution);
         p.studentId   = obj.optString("studentId",   p.studentId);
         p.classCode   = obj.optString("classCode",   p.classCode);
         p.cookies     = obj.optString("cookies",     p.cookies);
         p.loggedIn    = obj.optBoolean("loggedIn",   p.loggedIn);
-
+        p.courses.add(new JSONObject()
+                .put("name", "Webtop")
+                .put("year", java.time.Year.now().getValue())
+        );
         return p;
+    }
+    public boolean isEditing(){
+        return editing;
+    };
+    public void startEditing(){
+        editing = true;
+    };
+    public void stopEditing(){
+        editing = false;
+    };
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setUsername(String username){
+        this.username = username;
+    };
+    public void setPassword(String password){
+        this.password = password;
+    };
+
+    public ArrayList<JSONObject> getCourses(){
+        return courses;
     }
 }

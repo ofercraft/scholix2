@@ -2,9 +2,6 @@ package com.scholix.app.api;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.util.Log;
-import com.google.firebase.crashlytics.buildtools.reloc.com.google.common.reflect.TypeToken;
-import com.google.gson.Gson;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -13,6 +10,10 @@ import java.io.IOException;
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 public class PlatformStorage {
 
@@ -34,7 +35,6 @@ public class PlatformStorage {
                 Log.e(TAG, "Error serializing platform: " + p.getClass().getSimpleName(), e);
             }
         }
-        System.out.println(array.toString());
         prefs.edit()
                 .putString(KEY_PLATFORMS, array.toString())
                 .apply();
@@ -51,11 +51,6 @@ public class PlatformStorage {
 
         try {
             JSONArray array = new JSONArray(json);
-            System.out.println(array);
-            System.out.println(array);
-            System.out.println(array);
-            System.out.println(array);
-            System.out.println(array);
             for (int i = 0; i < array.length(); i++) {
                 JSONObject obj = array.getJSONObject(i);
                 try {
@@ -106,6 +101,31 @@ public class PlatformStorage {
         return newPlatforms;
     }
 
+    public static boolean checkPlatform(Context context, String username, String password) {
+        ExecutorService executor = Executors.newFixedThreadPool(3);
+        List<Callable<Boolean>> tasks = new ArrayList<>();
+
+        tasks.add(() -> new BarIlanPlatform(username, password).loggedIn);
+        tasks.add(() -> new WebtopPlatform(username, password).loggedIn);
+        tasks.add(() -> new DemoPlatform(username, password).loggedIn);
+
+        try {
+            List<Future<Boolean>> results = executor.invokeAll(tasks);
+
+            for (Future<Boolean> result : results) {
+                if (result.get()) {
+                    executor.shutdownNow(); // stop remaining threads
+                    return true;
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            executor.shutdownNow();
+        }
+        return false;
+    }
+
 
     public static void refreshCookies(Context context) {
         List<Platform> platforms = loadPlatforms(context);
@@ -141,5 +161,52 @@ public class PlatformStorage {
             return null;
         }
         return platforms.get(index);
+    }
+
+    /**
+     * Removes a Platform object at a specific index from the stored list.
+     */
+    public static void removePlatform(Context context, int index) {
+        List<Platform> platforms = loadPlatforms(context);
+        if (index < 0 || index >= platforms.size()) {
+            Log.w(TAG, "removePlatform: index out of bounds: " + index);
+            return;
+        }
+        platforms.remove(index);
+        savePlatforms(context, platforms);
+        Log.d(TAG, "Removed platform at index " + index);
+    }
+    /**
+     * Updates an existing Platform object at a specific index and saves the list.
+     */
+    public static void updatePlatform(Context context, int index, Platform updatedPlatform) {
+        List<Platform> platforms = loadPlatforms(context);
+        if (index < 0 || index >= platforms.size()) {
+            Log.w(TAG, "updatePlatform: index out of bounds: " + index);
+            return;
+        }
+        platforms.set(index, updatedPlatform);
+        savePlatforms(context, platforms);
+        Log.d(TAG, "Updated platform at index " + index);
+    }
+
+
+    /**
+     * returns an array of all the courses
+     * [{"name":"Webtop","year":2025,"index":0}, {"name":"שכבה ט הוד השרון יום ב 16:00-19:15","year":"תשפה","teacher":"סמדר הופ","index":1}, {"name":"שכבה ח הוד השרון יום ב 16:00-19:15","year":"תשפד","teacher":"איילה שפירא","index":1}, {"name":"שכבה ו הוד השרון יום ב 17:45-19:15","year":"תשפג","teacher":"יובל כהני","index":1}]
+     */
+    public static ArrayList<JSONObject> getCourses(Context context) throws JSONException {
+        List<Platform> platforms = loadPlatforms(context);
+        ArrayList<JSONObject> courses = new ArrayList<JSONObject>();
+        for (int i=0; i<platforms.size(); i++){
+            Platform platform = platforms.get(i);
+            ArrayList<JSONObject> platformCourses = platform.getCourses();
+            for (int j=0; j<platformCourses.size(); j++){
+                JSONObject course = platformCourses.get(j);
+                course.put("index", i);
+                courses.add(course);
+            }
+        }
+        return courses;
     }
 }
