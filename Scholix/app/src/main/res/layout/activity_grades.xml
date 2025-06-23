@@ -1,86 +1,72 @@
-<androidx.coordinatorlayout.widget.CoordinatorLayout
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingTop="48dp"
     android:background="@color/background">
 
-    <!-- ✅ Add SwipeRefreshLayout -->
+    <!-- Header: Title + Tabs (outside refresh) -->
+    <LinearLayout
+        android:id="@+id/header_layout"
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingTop="48dp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        style="@style/background">
+
+        <TextView
+            android:id="@+id/today_title"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:gravity="center"
+            android:text="@string/grades"
+            android:textColor="@color/text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <com.google.android.material.tabs.TabLayout
+            android:id="@+id/platform_tabs"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:tabMode="scrollable"
+            app:tabGravity="start"
+            app:tabIndicatorColor="@color/colorPrimary"
+            app:tabIndicatorHeight="3dp"
+            android:layout_marginBottom="8dp"
+            app:tabSelectedTextColor="@color/colorPrimary"
+            app:tabTextColor="@color/tab_unselected"
+            app:tabTextAppearance="@style/DayTabText"
+            style="@style/background" />
+    </LinearLayout>
+
+    <!-- SwipeRefreshLayout wraps only the RecyclerView -->
     <androidx.swiperefreshlayout.widget.SwipeRefreshLayout
         android:id="@+id/swipe_refresh"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="match_parent"
+        android:layout_below="@id/header_layout"
+        android:layout_above="@id/bottom_navigation">
 
-        <LinearLayout
-            style="@style/background"
-            android:orientation="vertical"
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/grades_recycler_view"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:paddingStart="0dp"
-            android:paddingEnd="0dp"
-            android:paddingTop="16dp"
-            android:paddingBottom="16dp"
-            android:layout_marginBottom="56dp">
-
-            <TextView
-                android:id="@+id/today_title"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="8dp"
-                android:gravity="center"
-                android:text="@string/grades"
-                android:textColor="@color/text"
-                android:textSize="24sp"
-                android:textStyle="bold" />
-
-            <com.google.android.material.tabs.TabLayout
-                android:id="@+id/platform_tabs"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                app:tabMode="scrollable"
-                app:tabGravity="center"
-                app:tabIndicatorColor="@color/colorPrimary"
-                app:tabIndicatorHeight="3dp"
-                android:layout_marginBottom="16dp"
-                app:tabSelectedTextColor="@color/colorPrimary"
-                app:tabTextColor="@color/tab_unselected"
-                app:tabTextAppearance="@style/DayTabText"
-                style="@style/background" />
-
-            <androidx.core.widget.NestedScrollView
-                android:id="@+id/nested_scroll_view"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:overScrollMode="never"
-                android:clipToPadding="false"
-                android:paddingBottom="80dp"
-                android:fillViewport="true">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="vertical"
-                    android:padding="12dp"
-                    style="@style/background">
-
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/grades_recycler_view"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content" />
-                </LinearLayout>
-            </androidx.core.widget.NestedScrollView>
-        </LinearLayout>
+            android:layout_height="match_parent"
+            android:overScrollMode="never"
+            android:clipToPadding="false"
+            android:paddingBottom="80dp" />
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-    <!-- Bottom Nav stays outside refresh scope -->
+    <!-- Bottom navigation fixed at bottom -->
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottom_navigation"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_alignParentBottom="true"
         android:background="#1b2127"
-        android:layout_gravity="bottom"
         app:menu="@menu/bottom_nav_menu"
         app:itemIconSize="24dp"
         app:itemIconTint="@color/nav_item_color"
@@ -88,4 +74,5 @@
         app:labelVisibilityMode="labeled"
         app:itemRippleColor="@android:color/transparent"
         app:backgroundTint="@color/backgroundAccent" />
-</androidx.coordinatorlayout.widget.CoordinatorLayout>
+
+</RelativeLayout>

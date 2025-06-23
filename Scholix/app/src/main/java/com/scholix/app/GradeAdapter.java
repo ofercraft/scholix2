@@ -38,7 +38,10 @@ public class GradeAdapter extends RecyclerView.Adapter<GradeAdapter.GradeViewHol
             holder.subjectText.setText(grade.getString("subject"));
             if(grade.getString("subject").equals("ממוצע"))
                 holder.subjectText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 40); // Bigger text
+            else{
+                holder.subjectText.setTextSize(TypedValue.COMPLEX_UNIT_SP, 18); // Bigger text
 
+            }
             holder.nameText.setText(grade.getString("name"));
             String displayGrade = grade.getString("grade");
             holder.gradeText.setText(displayGrade);

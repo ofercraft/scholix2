@@ -43,17 +43,13 @@ dependencies {
     implementation 'androidx.security:security-crypto:1.1.0-beta01'
     implementation 'androidx.credentials:credentials:1.5.0'
     implementation "androidx.credentials:credentials-play-services-auth:1.5.0"
-    implementation 'com.google.code.gson:gson:2.11.0' // Or latest version
+    implementation 'com.google.code.gson:gson:2.11.0'
     implementation "androidx.work:work-runtime:2.10.2"
     implementation 'androidx.swiperefreshlayout:swiperefreshlayout:1.1.0'
-
-//    implementation 'com.amulyakhare:com.amulyakhare.textdrawable:1.0.1'
     implementation 'com.github.amulyakhare:TextDrawable:master-SNAPSHOT'
-
     implementation 'com.github.bumptech.glide:glide:4.16.0'
     implementation 'com.google.firebase:firebase-crashlytics-buildtools:3.0.4'
     annotationProcessor 'com.github.bumptech.glide:compiler:4.16.0'
-
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.2.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.1'

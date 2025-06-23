@@ -5,51 +5,34 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
-import android.widget.ImageButton;
 import android.widget.PopupMenu;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.DividerItemDecoration;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
-
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 import com.google.android.material.tabs.TabLayout;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import com.scholix.app.api.Platform;
 import com.scholix.app.api.PlatformStorage;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Type;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
-import java.util.ListIterator;
-import java.util.stream.IntStream;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class GradesActivity extends BaseActivity {
 
-    private RecyclerView gradesRecyclerView;
     private GradeAdapter gradeAdapter;
-    private ArrayList gradeList;
     private SharedPreferences prefs;
     private Context context;
-    private volatile int currentTabVersion = 0;
+    private final AtomicInteger currentTabVersion = new AtomicInteger(0);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,7 +41,7 @@ public class GradesActivity extends BaseActivity {
 
         Log.d("NAV_DEBUG", "GradesActivity started");
         context = this;
-        gradesRecyclerView = findViewById(R.id.grades_recycler_view);
+        RecyclerView gradesRecyclerView = findViewById(R.id.grades_recycler_view);
         gradesRecyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         ArrayList<JSONObject> gradeList = new ArrayList<>();
@@ -66,6 +49,11 @@ public class GradesActivity extends BaseActivity {
         gradesRecyclerView.setAdapter(gradeAdapter);
         DividerItemDecoration divider = new DividerItemDecoration(this, DividerItemDecoration.VERTICAL);
         gradesRecyclerView.addItemDecoration(divider);
+
+
+
+
+
 
         prefs = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
 
@@ -88,21 +76,24 @@ public class GradesActivity extends BaseActivity {
                             tabLayout.addTab(tabLayout.newTab().setText(courses.get(i).getString("name")));
                             tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
                                 @Override public void onTabSelected(TabLayout.Tab tab) {
-                                    currentTabVersion++; // bump version
-                                    int thisTabVersion = currentTabVersion;
+                                    final int thisTabVersion = currentTabVersion.incrementAndGet();
 
                                     new Thread(() -> {
                                         try {
                                             JSONArray grades = PlatformStorage.loadPlatforms(context).get(courses.get(tab.getPosition()).getInt("index")).getGrades(courses.get(tab.getPosition()).getString("name"));
-                                            if (thisTabVersion != currentTabVersion) return;
+                                            if (thisTabVersion!=currentTabVersion.get()) return;
 
                                             runOnUiThread(() -> {
-                                                if (thisTabVersion != currentTabVersion) return; // double-check before UI update
+                                                if (thisTabVersion!=currentTabVersion.get()) return; // double-check before UI update
 
                                                 TextView averageGrade = findViewById(R.id.average_grade);
                                                 int sum = 0;
                                                 int count = 0;
-                                                gradeList.clear();
+                                                int oldSize = gradeAdapter.getItemCount();
+                                                if (oldSize > 0) {
+                                                    gradeList.clear();
+                                                    gradeAdapter.notifyItemRangeRemoved(0, oldSize);
+                                                }
                                                 for (int i = 0; i < grades.length(); i++) {
                                                     JSONObject grade = grades.optJSONObject(i);
                                                     try {
@@ -110,7 +101,7 @@ public class GradesActivity extends BaseActivity {
                                                             try {
                                                                 sum += grade.getInt("grade");
                                                                 count++;
-                                                            } catch (Exception e) {
+                                                            } catch (Exception ignored) {
                                                             }
                                                             gradeList.add(grade);  // now this is a checked call
                                                         }
@@ -132,8 +123,13 @@ public class GradesActivity extends BaseActivity {
                                                         throw new RuntimeException(e);
                                                     }
                                                 }
-                                                gradeAdapter.notifyDataSetChanged();
+                                                if(gradeList.size()>1){
+                                                    gradeAdapter.notifyItemRangeInserted(0,gradeList.size()-1);
+                                                }
+                                                else{
+                                                    gradeAdapter.notifyItemInserted(0);
 
+                                                }
                                             });
                                         } catch (JSONException e) {
                                             throw new RuntimeException(e);
@@ -204,17 +200,6 @@ public class GradesActivity extends BaseActivity {
                                 }
                             });
 
-
-//
-//                            try{
-//                                JSONArray grades = PlatformStorage.loadPlatforms(this).get(courses.get(finalI).getInt("index")).getGrades(courses.get(finalI).getString("name"));
-//                            } catch (JSONException e) {
-//                                throw new RuntimeException(e);
-//                            } catch (IOException e) {
-//                                throw new RuntimeException(e);
-//                            }
-
-
                         } catch (JSONException e) {
                             throw new RuntimeException(e);
                         }
@@ -226,48 +211,6 @@ public class GradesActivity extends BaseActivity {
                 throw new RuntimeException(e);
             }
         }).start();
-//        // Loop through all accounts
-//        for (Platform platform : savedAccounts) {
-//
-//
-//            new Thread(() -> {
-//                try {
-//                    JSONArray grades = platform.getGrades();
-//
-//                    runOnUiThread(() -> {
-//                        TextView averageGrade = findViewById(R.id.average_grade);
-//                        int sum = 0;
-//                        int count = 0;
-//                        for (int i = 0; i < grades.length(); i++) {
-//                            JSONObject grade = grades.optJSONObject(i);
-//                            try {
-//                                if (!grade.getString("grade").equals("null")) {
-//                                    try {
-//                                        sum += grade.getInt("grade");
-//                                        count++;
-//                                    } catch (Exception e){}
-//                                    gradeList.add(grade);  // now this is a checked call
-//                                }
-//                            } catch (JSONException e) {
-//                                throw new RuntimeException(e);
-//                            }
-//                        }
-//                        if (count>0)
-//                            averageGrade.setText(String.valueOf(sum/count));
-//                        else
-//                            averageGrade.setText("0");
-//                        gradeAdapter.notifyDataSetChanged();
-//                    });
-//
-//                } catch (JSONException e) {
-//                    throw new RuntimeException(e);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//
-//            }).start();
-//
-//        }
 
         // Bottom Navigation
         BottomNavigationView bottomNavigationView = findViewById(R.id.bottom_navigation);
@@ -291,6 +234,13 @@ public class GradesActivity extends BaseActivity {
                 }
             }).start();
         });
+        RecyclerView rv       = findViewById(R.id.grades_recycler_view);
+        rv.setNestedScrollingEnabled(true);
+        swipeRefreshLayout.setOnChildScrollUpCallback((parent, child) -> {
+            return rv.canScrollVertically(-1);
+        });
+        swipeRefreshLayout.setDistanceToTriggerSync(200);
+
 
     }
 
